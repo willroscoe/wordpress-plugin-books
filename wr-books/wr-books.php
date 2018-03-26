@@ -30,37 +30,105 @@ function book_custom_post_type() {
 /**************************
  Additional book meta fields
     - Sub-Title
-    - Authors [todo]
-    - Summary paragraph [todo]
-    - Thumbnail image [todo]
-    - Disable read online [todo]
+    - Author(s)
+    - Thumbnail image
+    - Enable read online
+    - Buy online link
     - ePub file link
-    - Buy link [todo]
-    - PDF download file link [todo]
-    - Kindle download file link [todo]
+    - PDF download file link
+    - mobi (Kindle) download file link
 */
 
-/*
+/*************
 Book Sub-title
 */
 function book_subtitle_meta_box_markup($object)
 {
-    wp_nonce_field(basename(__FILE__), "book_subtitle_meta_box_nonce");
-
+    wp_nonce_field(basename(__FILE__), "book_subtitle_nonce");
     ?>
         <div>
-            <label for="book_subtitle_meta_box">Text</label>
-            <textarea name="book_subtitle_meta_box"><?php echo get_post_meta($object->ID, "book_subtitle_meta_box", true); ?></textarea>
+            <label for="book_subtitle">Sub-title</label>
+            <textarea name="book_subtitle"><?php echo get_post_meta($object->ID, "book_subtitle", true); ?></textarea>
         </div>
     <?php
 }
 
-function add_book_subtitle_meta_box()
+function book_subtitle_meta_box()
 {
-    add_meta_box("book_subtitle_meta_box", "Sub-title", "book_subtitle_meta_box_markup", "wr_book", "normal", "high", null);
+    add_meta_box("book_subtitle", "Sub-title", "book_subtitle_meta_box_markup", "wr_book", "normal", "high", null);
 }
 
-add_action("add_meta_boxes", "add_book_subtitle_meta_box");
+add_action("add_meta_boxes", "book_subtitle_meta_box");
+
+/*************
+Book Authors
+*/
+function book_authors_meta_box_markup($object)
+{
+    wp_nonce_field(basename(__FILE__), "book_authors_nonce");
+    ?>
+        <div>
+            <label for="book_authors">Authors</label>
+            <textarea name="book_authors"><?php echo get_post_meta($object->ID, "book_authors", true); ?></textarea>
+        </div>
+    <?php
+}
+
+function book_authors_meta_box()
+{
+    add_meta_box("book_authors", "Author(s)", "book_authors_meta_box_markup", "wr_book", "normal", "high", null);
+}
+
+add_action("add_meta_boxes", "book_authors_meta_box");
+
+/*****************************
+Buy online link i.e. to Amazon
+*/
+function buy_book_link_meta_box_markup($object)
+{
+    wp_nonce_field(basename(__FILE__), "buy_book_link_nonce");
+    ?>
+        <div>
+            <label for="buy_book_link">Amazon link</label>
+            <input type="text" name="buy_book_link" value="<?php echo get_post_meta($object->ID, "buy_book_link", true); ?>">
+        </div>
+    <?php
+}
+
+function buy_book_link_meta_box()
+{
+    add_meta_box("buy_book_link", "Buy Online link", "buy_book_link_meta_box_markup", "wr_book", "normal", "high", null);
+}
+
+add_action("add_meta_boxes", "buy_book_link_meta_box");
+
+/*****************
+Enable read online
+*/
+function enable_readonline_meta_box_markup($object)
+{
+    wp_nonce_field(basename(__FILE__), "enable_readonline_nonce");
+    ?>
+        <div>
+            <label for="enable_readonline">Enable Read Online</label>
+            <?php
+                $checkbox_value = get_post_meta($object->ID, "enable_readonline", true);
+                ?>
+                    <input name="enable_readonline" type="checkbox" value="true" <?php if($checkbox_value == "true")?> checked<?php ?>>
+                <?php
+            ?>
+        </div>
+    <?php
+}
+
+function enable_readonline_meta_box()
+{
+    add_meta_box("enable_readonline", "Enable Read Online", "enable_readonline_meta_box_markup", "wr_book", "normal", "high", null);
+}
+
+add_action("add_meta_boxes", "enable_readonline_meta_box");
+
+
 
 /*
 Files meta box - Begin
@@ -87,8 +155,8 @@ function build_book_attachment_type_markup($filetypename)
     $thefile_form_input_name = strtolower($filetypename) . "_file_attachment";
 
     $thefile = get_post_meta(get_the_ID(), $thefile_form_input_name, true);
-    $html = sprintf('<p class="description">Upload the %s file here</p><input type="file" id="%s" name="%s" value="%s" size="40" />', $filetypename, $thefile_form_input_name, $thefile_form_input_name, $thefile['url']);
-    
+    $html = sprintf('<p class="description">Upload the %s file here</p><input type="file" id="%s" name="%s" value="" size="40" />', $filetypename, $thefile_form_input_name, $thefile_form_input_name);
+    $html .= sprintf('<input type="text" id="%s_url" name="%s_url" value="%s" size="30" />', $thefile_form_input_name, $thefile_form_input_name, $thefile['url']);
     if(strlen(trim($thefile['url'])) > 0) {
         $html .= '<a href="javascript:;" id="' . $thefile_form_input_name . '_delete">' . __('Delete File') . '</a>';
     }
@@ -161,9 +229,45 @@ function save_book_data($id) {
         } // end if
     } // end if*/
     /* - end security verification - */
-     
-    // Make sure the file array isn't empty
+
+
+    // Save 'read online' checkbox - Checkboxes are present if checked, absent if not.
+    if ( isset( $_POST['enable_readonline'] ) ) {
+        update_post_meta( $post_id, 'enable_readonline', TRUE );
+    } else {
+        update_post_meta( $post_id, 'enable_readonline', FALSE );
+    }
+
+
+    // Save 'sub-title'
+    $book_subtitle_value = "";
+    if(isset($_POST["book_subtitle"]))
+    {
+        $book_subtitle_value = sanitize_text_field($_POST["book_subtitle"]);
+    }   
+    update_post_meta($post_id, "book_subtitle", $book_subtitle_value);
+
     
+    // Save authors
+    $book_authors_value = "";
+    if(isset($_POST["book_authors"]))
+    {
+        $book_authors_value = sanitize_text_field($_POST["book_authors"]);
+    }   
+    update_post_meta($post_id, "book_authors", $book_authors_value);
+
+
+    // Save 'buy online' amazon link
+    $buy_book_link_value = "";
+    if(isset($_POST["buy_book_link"]))
+    {
+        $buy_book_link_value = sanitize_text_field($_POST["buy_book_link"]);
+    }   
+    update_post_meta($post_id, "buy_book_link", $buy_book_link_value);
+
+
+    // Save book file attachments
+
     // EPUB
     upload_file_bytype("ePub", array('application/octet-stream', 'application/epub+zip'));
 
@@ -174,6 +278,8 @@ function save_book_data($id) {
     upload_file_bytype("mobi", array('application/octet-stream', 'x-mobipocket-ebook'));
      
 } // end - save_book_data
+
+
 
 function upload_file_bytype($filetypename, $allowedmimetypes)
 {
@@ -216,42 +322,11 @@ function update_edit_form() {
 
 add_action('post_edit_form_tag', 'update_edit_form'); // allow form to upload files
 
-add_action('save_post', 'save_book_data', 10 , 1);
-
-
-/*************************
-Enable read online - BEGIN
-*/
-function enable_readonline_meta_box_markup($object)
-{
-    wp_nonce_field(basename(__FILE__), "enable_readonline_meta_box_nonce");
-
-    ?>
-        <div>
-            <label for="enable_readonline_meta_box">Enable Read Online</label>
-            <?php
-                $checkbox_value = get_post_meta($object->ID, "enable_readonline_meta_box", false);
-                ?>
-                    <input name="enable_readonline_meta_box" type="checkbox" value="true" <?php if($checkbox_value == "true")?> checked<?php ?>>
-                <?php
-            ?>
-        </div>
-    <?php
-}
-
-function enable_readonline_meta_box()
-{
-    add_meta_box("enable_readonline_meta_box", "Enable Read Online", "enable_readonline_meta_box_markup", "wr_book", "normal", "high", null);
-}
-
-add_action("add_meta_boxes", "enable_readonline_meta_box");
-
-/*
-Enable read online - END
-**************************/
+add_action('save_post_wr_book', 'save_book_data', 10 , 1); // this will only save if the post type is 'wr_book'. Use 'save_post' for any other post type.
 
 
 // save data
+/*
 function save_custom_meta_box($post_id, $post, $update)
 {
     if (!isset($_POST["enable_readonline_meta_box_nonce"]) || !wp_verify_nonce($_POST["enable_readonline_meta_box_nonce"], basename(__FILE__)))
@@ -275,7 +350,7 @@ function save_custom_meta_box($post_id, $post, $update)
 
     //$meta_box_text_value = "";
     //$meta_box_dropdown_value = "";
-    $enable_readonline_meta_box_value = "";
+    
 
     /*if(isset($_POST["meta-box-text"]))
     {
@@ -287,8 +362,8 @@ function save_custom_meta_box($post_id, $post, $update)
     {
         $meta_box_dropdown_value = $_POST["meta-box-dropdown"];
     }   
-    update_post_meta($post_id, "meta-box-dropdown", $meta_box_dropdown_value);*/
-
+    update_post_meta($post_id, "meta-box-dropdown", $meta_box_dropdown_value);
+    $enable_readonline_meta_box_value = "";
     if(isset($_POST["enable_readonline_meta_box"]))
     {
         $enable_readonline_meta_box_value = $_POST["enable_readonline_meta_box"];
@@ -297,10 +372,24 @@ function save_custom_meta_box($post_id, $post, $update)
 }
 
 add_action("save_post", "save_custom_meta_box", 10, 3);
+*/
+
+
+/**************************************************************
+ file attachment script for admin - to delete a file attachment
+*/
+function add_custom_attachment_script() {
+ 
+    wp_register_script('custom-attachment-script', plugin_dir_url( __FILE__ ) . '/js/custom_attachment.js');
+    wp_enqueue_script('custom-attachment-script');
+ 
+} // end add_custom_attachment_script
+add_action('admin_enqueue_scripts', 'add_custom_attachment_script');
+
 
 
 /**********************************************
- ebook uploader - epub is not allowed by default
+ ebook uploader - because epub is not allowed by default
  based on https://wordpress.org/plugins/allow-epub-and-mobi-formats-upload/
 */
 
