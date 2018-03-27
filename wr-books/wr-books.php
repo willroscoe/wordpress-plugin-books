@@ -156,7 +156,7 @@ function build_book_attachment_type_markup($filetypename)
 
     $thefile = get_post_meta(get_the_ID(), $thefile_form_input_name, true);
     $html = sprintf('<p class="description">Upload the %s file here</p><input type="file" id="%s" name="%s" value="" size="40" />', $filetypename, $thefile_form_input_name, $thefile_form_input_name);
-    $html .= sprintf('<input type="text" id="%s_url" name="%s_url" value="%s" size="30" />', $thefile_form_input_name, $thefile_form_input_name, $thefile['url']);
+    $html .= sprintf('<input type="hidden" id="%s_url" name="%s_url" value="%s" size="30" />', $thefile_form_input_name, $thefile_form_input_name, $thefile['url']);
     if(strlen(trim($thefile['url'])) > 0) {
         $html .= '<a href="javascript:;" id="' . $thefile_form_input_name . '_delete">' . __('Delete File') . '</a>';
     }
@@ -313,8 +313,33 @@ function upload_file_bytype($filetypename, $allowedmimetypes)
             wp_die("The file type that you've uploaded for " . $filetypename . " is not correct.");
         } // end if/else
          
-    } // end if
+    } else { // check if we need to delete the attachment
+ 
+        // Grab a reference to the file associated with this post
+        $doc = get_post_meta($id, $thefile_form_input_name, true);
+         
+        // Grab the value for the URL to the file stored in the text element
+        $delete_flag = get_post_meta($id, $thefile_form_input_name . '_url', true);
+         
+        // Determine if a file is associated with this post and if the delete flag has been set (by clearing out the input box)
+        if(strlen(trim($doc['url'])) > 0 && strlen(trim($delete_flag)) == 0) {
+         
+            // Attempt to remove the file. If deleting it fails, print a WordPress error.
+            if(unlink($doc['file'])) {
+                 
+                // Delete succeeded so reset the WordPress meta data
+                update_post_meta($id, $thefile_form_input_name, null);
+                update_post_meta($id, $thefile_form_input_name . '_url', '');
+                 
+            } else {
+                wp_die('There was an error trying to delete your file.');
+            } // end if/el;se
+             
+        } // end if
+ 
+    } // end if/else
 }
+
 
 function update_edit_form() {
     echo ' enctype="multipart/form-data"';
@@ -420,3 +445,74 @@ function wr_ebook_mime_types3($mimes) {
 add_filter('upload_mimes', 'wr_ebook_mime_types1', 1, 1);
 add_filter('upload_mimes', 'wr_ebook_mime_types2');
 add_filter('upload_mimes', 'wr_ebook_mime_types3');
+
+add_action('init', 'wr_book_add_endpoints');
+
+function wr_book_add_endpoints()
+{
+    add_filter( 'template_include', 'include_template', 99 );
+    add_rewrite_endpoint('read', EP_PERMALINK | EP_PAGES);
+}
+
+function include_template( $template )
+{
+    if (get_query_var( 'wr_book' )) // this is a book
+    {
+        global $wp;
+        $current_url = add_query_arg( $wp->query_string, '', home_url( $wp->request ) );
+        $thepath = parse_url($current_url, PHP_URL_PATH);
+
+        if (preg_match('"/books/[^/]+/read/?"', $thepath))
+        {
+            return dirname( __FILE__ ) . '/reader.php';
+        }
+    }
+
+    return $template;
+}
+
+
+
+// Class for url rewriting and loading the book reading template page
+/*class BookReaderClass
+{
+    public function init()
+    {
+        add_filter( 'template_include', array( $this, 'include_template' ) );
+        add_filter( 'init', array( $this, 'rewrite_rules' ) );
+    }
+
+    public function include_template( $template )
+    {
+        //try and get the query var we registered in our query_vars() function
+        $read_book = get_query_var( 'book_page' );
+
+        //if the query var has data, we must be on the right page, load our custom template
+        if ( $read_book ) {
+            return dirname( __FILE__ ) . '/reader.php';
+        }
+
+        return $template;
+    }
+
+    public function flush_rules()
+    {
+        $this->rewrite_rules();
+
+        flush_rewrite_rules();
+    }
+
+    public function rewrite_rules()
+    {
+        add_rewrite_tag( '%book_page%', '([^&]+)');
+        add_rewrite_tag( '%book_chapter%', '([^&]+)');
+        //add_rewrite_rule( '^books/([^/]*)/read/?', 'index.php?book_page=$matches[1]', 'top'); // ['api/(.*?)/(.+?)']
+        //add_rewrite_rule( '^books/([^/]+)/read/(.+?))', 'index.php?book_page=$matches[1]&book_chapter=$matches[2]', 'top'); // ['api/(.*?)/(.+?)']
+    }
+
+}
+
+add_action( 'plugins_loaded', array( new BookReaderClass, 'init' ) );
+
+// One time activation functions
+register_activation_hook( __FILE__ , array( new BookReaderClass, 'flush_rules' ) );*/
