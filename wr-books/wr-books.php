@@ -114,7 +114,7 @@ function enable_readonline_meta_box_markup($object)
             <?php
                 $checkbox_value = get_post_meta($object->ID, "enable_readonline", true);
                 ?>
-                    <input name="enable_readonline" type="checkbox" value="true" <?php if($checkbox_value == "true")?> checked<?php ?>>
+                    <input name="enable_readonline" type="checkbox" value="TRUE" <?php if($checkbox_value == TRUE)?> checked<?php ?>>
                 <?php
             ?>
         </div>
@@ -173,39 +173,6 @@ add_action("add_meta_boxes", "add_attach_book_files");
 /*
 Files meta box - End
 */
-
-
-/*
-epub file upload and meta field
-*/
-/*function epub_file_attachment_markup($object)
-{
-    wp_nonce_field(basename(__FILE__), "epub_file_attachment_nonce");
-    //wp_nonce_field(plugin_basename(__FILE__), 'wp_custom_attachment_nonce');
-     
-    $html = '<p class="description">';
-        $html .= 'Upload the ePub file here.';
-    $html .= '</p>';
-    $html .= '<input type="file" id="epub_file_attachment" name="epub_file_attachment" value="" size="100" />';
-
-    // Grab the array of file information currently associated with the post
-    $doc = get_post_meta(get_the_ID(), 'epub_file_attachment', true);
-
-    $html .= '<input type="text" id="epub_file_attachment_url" name="epub_file_attachment_url" value=" ' . $doc['url'] . '" size="100" />';
-    
-    if(strlen(trim($doc['url'])) > 0) {
-        $html .= '<a href="javascript:;" id="epub_file_attachment_delete">' . __('Delete File') . '</a>';
-    }
-    echo $html;
-
-}
-
-function add_epub_file_attachment()
-{
-    add_meta_box("epub_file_attachment", "ePub File", "epub_file_attachment_markup", "wr_book", "normal", "high", null);
-}
-
-add_action("add_meta_boxes", "add_epub_file_attachment");*/
 
 
 function save_book_data($id) {
@@ -350,102 +317,19 @@ add_action('post_edit_form_tag', 'update_edit_form'); // allow form to upload fi
 add_action('save_post_wr_book', 'save_book_data', 10 , 1); // this will only save if the post type is 'wr_book'. Use 'save_post' for any other post type.
 
 
-// save data
-/*
-function save_custom_meta_box($post_id, $post, $update)
-{
-    if (!isset($_POST["enable_readonline_meta_box_nonce"]) || !wp_verify_nonce($_POST["enable_readonline_meta_box_nonce"], basename(__FILE__)))
-        return $post_id;
-
-    if(!current_user_can("edit_post", $post_id))
-        return $post_id;
-
-    if(defined("DOING_AUTOSAVE") && DOING_AUTOSAVE)
-        return $post_id;
-
-        if('page' == $_POST['post_type']) {
-            if(!current_user_can('edit_page', $id)) {
-              return $id;
-            } // end if
-          } else {
-              if(!current_user_can('edit_page', $id)) {
-                  return $id;
-              } // end if
-          } // end if
-
-    //$meta_box_text_value = "";
-    //$meta_box_dropdown_value = "";
-    
-
-    /*if(isset($_POST["meta-box-text"]))
-    {
-        $meta_box_text_value = $_POST["meta-box-text"];
-    }   
-    update_post_meta($post_id, "meta-box-text", $meta_box_text_value);
-
-    if(isset($_POST["meta-box-dropdown"]))
-    {
-        $meta_box_dropdown_value = $_POST["meta-box-dropdown"];
-    }   
-    update_post_meta($post_id, "meta-box-dropdown", $meta_box_dropdown_value);
-    $enable_readonline_meta_box_value = "";
-    if(isset($_POST["enable_readonline_meta_box"]))
-    {
-        $enable_readonline_meta_box_value = $_POST["enable_readonline_meta_box"];
-    }   
-    update_post_meta($post_id, "enable_readonline_meta_box", $enable_readonline_meta_box_value);
-}
-
-add_action("save_post", "save_custom_meta_box", 10, 3);
-*/
-
-
 /**************************************************************
  file attachment script for admin - to delete a file attachment
 */
 function add_custom_attachment_script() {
  
-    wp_register_script('custom-attachment-script', plugin_dir_url( __FILE__ ) . '/js/custom_attachment.js');
+    wp_register_script('custom-attachment-script', plugin_dir_url( __FILE__ ) . '/js/wp_custom_attachment.js');
     wp_enqueue_script('custom-attachment-script');
  
 } // end add_custom_attachment_script
 add_action('admin_enqueue_scripts', 'add_custom_attachment_script');
 
 
-
-/**********************************************
- ebook uploader - because epub is not allowed by default
- based on https://wordpress.org/plugins/allow-epub-and-mobi-formats-upload/
-*/
-
-function wr_ebook_mime_types1($mime_types) {
-
-    $mime_types['epub'] = 'application/octet-stream'; 
-    return $mime_types;
-}
-
-function wr_ebook_mime_types2($mimes) {
-    $mimes = array_merge($mimes, array(
-        'epub|mobi' => 'application/octet-stream'
-    ));
-    return $mimes;
-}
-
-function wr_ebook_mime_types3($mimes) {
-
-    $new_file_types = array (
-        'zip' => 'application/zip',
-        'mobi' => 'application/x-mobipocket-ebook',
-        'epub' => 'application/epub+zip'
-    );
-
-    return array_merge($mimes,$new_file_types);
-}
-
-add_filter('upload_mimes', 'wr_ebook_mime_types1', 1, 1);
-add_filter('upload_mimes', 'wr_ebook_mime_types2');
-add_filter('upload_mimes', 'wr_ebook_mime_types3');
-
+// enable /read as an endpoint for books
 add_action('init', 'wr_book_add_endpoints');
 
 function wr_book_add_endpoints()
@@ -454,6 +338,7 @@ function wr_book_add_endpoints()
     add_rewrite_endpoint('read', EP_PERMALINK | EP_PAGES);
 }
 
+// if /read enpoint is hit then check if the 'reader' template/page should be used
 function include_template( $template )
 {
     if (get_query_var( 'wr_book' )) // this is a book
@@ -462,12 +347,20 @@ function include_template( $template )
         $current_url = add_query_arg( $wp->query_string, '', home_url( $wp->request ) );
         $thepath = parse_url($current_url, PHP_URL_PATH);
 
-        if (preg_match('"/books/[^/]+/read/?"', $thepath))
+        if (preg_match('"/books/[^/]+/read/?"', $thepath)) // on book read online page
         {
-            return dirname( __FILE__ ) . '/reader.php';
+            // check there is a viewable book and readonline is enabled
+            global $wp;
+            $current_url = add_query_arg( $wp->query_string, '', home_url( $wp->request ) );
+            $postid = url_to_postid( $current_url );
+            $enable_readonline = get_post_meta( $postid, 'enable_readonline', true );
+            $epub_file_attachment = get_post_meta( $postid, 'epub_file_attachment', true );
+            if ($epub_file_attachment != "")// and $enable_readonline == TRUE) // book file exisits
+            {
+                return dirname( __FILE__ ) . '/reader/reader.php';
+            }
         }
     }
-
     return $template;
 }
 
@@ -516,3 +409,36 @@ add_action( 'plugins_loaded', array( new BookReaderClass, 'init' ) );
 
 // One time activation functions
 register_activation_hook( __FILE__ , array( new BookReaderClass, 'flush_rules' ) );*/
+
+/**********************************************
+ ebook uploader - because epub is not allowed by default
+ based on https://wordpress.org/plugins/allow-epub-and-mobi-formats-upload/
+*/
+
+function wr_ebook_mime_types1($mime_types) {
+
+    $mime_types['epub'] = 'application/octet-stream'; 
+    return $mime_types;
+}
+
+function wr_ebook_mime_types2($mimes) {
+    $mimes = array_merge($mimes, array(
+        'epub|mobi' => 'application/octet-stream'
+    ));
+    return $mimes;
+}
+
+function wr_ebook_mime_types3($mimes) {
+
+    $new_file_types = array (
+        'zip' => 'application/zip',
+        'mobi' => 'application/x-mobipocket-ebook',
+        'epub' => 'application/epub+zip'
+    );
+
+    return array_merge($mimes,$new_file_types);
+}
+
+add_filter('upload_mimes', 'wr_ebook_mime_types1', 1, 1);
+add_filter('upload_mimes', 'wr_ebook_mime_types2');
+add_filter('upload_mimes', 'wr_ebook_mime_types3');
