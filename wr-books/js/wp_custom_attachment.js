@@ -1,7 +1,7 @@
 jQuery(function($) {
  
     setupdeleteclicks('epub');
-    setupdeleteclicks('PDF');
+    setupdeleteclicks('pdf');
     setupdeleteclicks('mobi');
 
     function setupdeleteclicks(filetype) {

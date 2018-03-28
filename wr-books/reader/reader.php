@@ -8,6 +8,7 @@
     {
         $epub_file_url = $epub_file_attachment['url'];
     }
+    $baseurl = esc_url( plugins_url( '/', __FILE__ ) );
 ?>
 <!DOCTYPE html>
 <html class="no-js">
@@ -19,21 +20,21 @@
         <meta name="viewport" content="width=device-width, user-scalable=no">
         <meta name="apple-mobile-web-app-capable" content="yes">
 
-        <link rel="stylesheet" href="css/normalize.css">
-        <link rel="stylesheet" href="css/main.css">
-        <link rel="stylesheet" href="css/popup.css">
+        <link rel="stylesheet" href="<?php echo $baseurl; ?>css/normalize.css">
+        <link rel="stylesheet" href="<?php echo $baseurl; ?>css/main.css">
+        <link rel="stylesheet" href="<?php echo $baseurl; ?>css/popup.css">
 
-        <script src="js/libs/jquery.min.js"></script>
+        <script src="<?php echo $baseurl; ?>js/libs/jquery.min.js"></script>
 
-        <script src="js/libs/zip.min.js"></script>
+        <script src="<?php echo $baseurl; ?>js/libs/zip.min.js"></script>
 
         <script>
             "use strict";
 
             document.onreadystatechange = function () {
               if (document.readyState == "complete") {
-                EPUBJS.filePath = "js/libs/";
-                EPUBJS.cssPath = window.location.href.replace(window.location.hash, '').replace('index.html', '') + "css/";
+                EPUBJS.filePath = "<?php echo $baseurl; ?>js/libs/";
+                EPUBJS.cssPath = "<?php echo $baseurl; ?>css/";
                 // fileStorage.filePath = EPUBJS.filePath;
 
                 window.reader = ePubReader("<?php echo $epub_file_url; ?>");
@@ -43,34 +44,34 @@
         </script>
 
         <!-- File Storage -->
-        <!-- <script src="js/libs/localforage.min.js"></script> -->
+        <!-- <script src="<?php echo $baseurl; ?>/js/libs/localforage.min.js"></script> -->
 
         <!-- Full Screen -->
-        <script src="js/libs/screenfull.min.js"></script>
+        <script src="<?php echo $baseurl; ?>js/libs/screenfull.min.js"></script>
 
         <!-- Render -->
-        <script src="js/epub.min.js"></script>
+        <script src="<?php echo $baseurl; ?>js/epub.min.js"></script>
 
         <!-- Hooks -->
-        <script src="js/hooks.min.js"></script>
+        <script src="<?php echo $baseurl; ?>js/hooks.min.js"></script>
 
         <!-- Reader -->
-        <script src="js/reader.min.js"></script>
+        <script src="<?php echo $baseurl; ?>js/reader.min.js"></script>
 
         <!-- Plugins -->
-        <script src="js/plugins/search.js"></script>
+        <!--<script src="<?php echo $baseurl; ?>js/plugins/search.js"></script> -->
 
         <!-- Highlights -->
-        <script src="js/libs/jquery.highlight.js"></script>
-        <script src="js/hooks/extensions/highlight.js"></script>
+        <script src="<?php echo $baseurl; ?>js/libs/jquery.highlight.js"></script>
+        <script src="<?php echo $baseurl; ?>js/hooks/extensions/highlight.js"></script>
 
     </head>
     <body>
       <div id="sidebar">
         <div id="panels">
-          <input id="searchBox" placeholder="search" type="search">
+          <!--<input id="searchBox" placeholder="search" type="search">
 
-          <a id="show-Search" class="show_view icon-search" data-view="Search">Search</a>
+          <a id="show-Search" class="show_view icon-search" data-view="Search">Search</a>-->
           <a id="show-Toc" class="show_view icon-list-1 active" data-view="Toc">TOC</a>
           <a id="show-Bookmarks" class="show_view icon-bookmark" data-view="Bookmarks">Bookmarks</a>
           <a id="show-Notes" class="show_view icon-edit" data-view="Notes">Notes</a>
@@ -78,9 +79,9 @@
         </div>
         <div id="tocView" class="view">
         </div>
-        <div id="searchView" class="view">
+        <!--<div id="searchView" class="view">
           <ul id="searchResults"></ul>
-        </div>
+        </div>-->
         <div id="bookmarksView" class="view">
           <ul id="bookmarks"></ul>
         </div>
@@ -107,6 +108,7 @@
             <a id="bookmark" class="icon-bookmark-empty">Bookmark</a>
             <a id="setting" class="icon-cog">Settings</a>
             <a id="fullscreen" class="icon-resize-full">Fullscreen</a>
+            <a href="<?php echo get_permalink($post_id); ?>" id="returntobook" class="icon-cancel-circled">Return to book</a>
           </div>
         </div>
 

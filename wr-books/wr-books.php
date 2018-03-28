@@ -156,7 +156,7 @@ function build_book_attachment_type_markup($filetypename)
 
     $thefile = get_post_meta(get_the_ID(), $thefile_form_input_name, true);
     $html = sprintf('<p class="description">Upload the %s file here</p><input type="file" id="%s" name="%s" value="" size="40" />', $filetypename, $thefile_form_input_name, $thefile_form_input_name);
-    $html .= sprintf('<input type="hidden" id="%s_url" name="%s_url" value="%s" size="30" />', $thefile_form_input_name, $thefile_form_input_name, $thefile['url']);
+    $html .= sprintf('<input type="text" id="%s_url" name="%s_url" value="%s" size="40" />', $thefile_form_input_name, $thefile_form_input_name, $thefile['url']);
     if(strlen(trim($thefile['url'])) > 0) {
         $html .= '<a href="javascript:;" id="' . $thefile_form_input_name . '_delete">' . __('Delete File') . '</a>';
     }
@@ -178,12 +178,12 @@ Files meta box - End
 function save_book_data($id) {
  
     /* --- security verification --- */
-    if(!wp_verify_nonce($_POST['enable_readonline_meta_box_nonce'], plugin_basename(__FILE__))) {
-      return $id;
+    if(!wp_verify_nonce($_POST['attach_book_files_nonce'], plugin_basename(__FILE__))) {
+      //return $id;
     } // end if
        
     if(defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
-      return $id;
+      //return $id;
     } // end if
        /*
     if('page' == $_POST['post_type']) {
@@ -200,9 +200,9 @@ function save_book_data($id) {
 
     // Save 'read online' checkbox - Checkboxes are present if checked, absent if not.
     if ( isset( $_POST['enable_readonline'] ) ) {
-        update_post_meta( $post_id, 'enable_readonline', TRUE );
+        update_post_meta( $id, 'enable_readonline', TRUE );
     } else {
-        update_post_meta( $post_id, 'enable_readonline', FALSE );
+        update_post_meta( $id, 'enable_readonline', FALSE );
     }
 
 
@@ -210,9 +210,9 @@ function save_book_data($id) {
     $book_subtitle_value = "";
     if(isset($_POST["book_subtitle"]))
     {
-        $book_subtitle_value = sanitize_text_field($_POST["book_subtitle"]);
+        $book_subtitle_value = $_POST["book_subtitle"];
     }   
-    update_post_meta($post_id, "book_subtitle", $book_subtitle_value);
+    update_post_meta($id, "book_subtitle", $book_subtitle_value);
 
     
     // Save authors
@@ -221,7 +221,7 @@ function save_book_data($id) {
     {
         $book_authors_value = sanitize_text_field($_POST["book_authors"]);
     }   
-    update_post_meta($post_id, "book_authors", $book_authors_value);
+    update_post_meta($id, "book_authors", $book_authors_value);
 
 
     // Save 'buy online' amazon link
@@ -230,25 +230,25 @@ function save_book_data($id) {
     {
         $buy_book_link_value = sanitize_text_field($_POST["buy_book_link"]);
     }   
-    update_post_meta($post_id, "buy_book_link", $buy_book_link_value);
+    update_post_meta($id, "buy_book_link", $buy_book_link_value);
 
 
     // Save book file attachments
 
     // EPUB
-    upload_file_bytype("ePub", array('application/octet-stream', 'application/epub+zip'));
+    upload_file_bytype($id, "ePub", array('application/octet-stream', 'application/epub+zip'));
 
     // PDF
-    upload_file_bytype("PDF", array('application/octet-stream', 'application/pdf'));
+    upload_file_bytype($id, "PDF", array('application/octet-stream', 'application/pdf'));
 
     // MOBI
-    upload_file_bytype("mobi", array('application/octet-stream', 'x-mobipocket-ebook'));
+    upload_file_bytype($id, "mobi", array('application/octet-stream', 'x-mobipocket-ebook'));
      
 } // end - save_book_data
 
 
 
-function upload_file_bytype($filetypename, $allowedmimetypes)
+function upload_file_bytype($id, $filetypename, $allowedmimetypes)
 {
     $thefile_form_input_name = strtolower($filetypename) . "_file_attachment";
 
@@ -286,7 +286,7 @@ function upload_file_bytype($filetypename, $allowedmimetypes)
         $doc = get_post_meta($id, $thefile_form_input_name, true);
          
         // Grab the value for the URL to the file stored in the text element
-        $delete_flag = get_post_meta($id, $thefile_form_input_name . '_url', true);
+        $delete_flag = $_POST[$thefile_form_input_name . "_url"]; //get_post_meta($id, $thefile_form_input_name . '_url', true);
          
         // Determine if a file is associated with this post and if the delete flag has been set (by clearing out the input box)
         if(strlen(trim($doc['url'])) > 0 && strlen(trim($delete_flag)) == 0) {
@@ -314,7 +314,7 @@ function update_edit_form() {
 
 add_action('post_edit_form_tag', 'update_edit_form'); // allow form to upload files
 
-add_action('save_post_wr_book', 'save_book_data', 10 , 1); // this will only save if the post type is 'wr_book'. Use 'save_post' for any other post type.
+add_action('save_post', 'save_book_data', 10 , 1); // this will only save if the post type is 'wr_book'. Use 'save_post' for any other post type.
 
 
 /**************************************************************
@@ -442,3 +442,19 @@ function wr_ebook_mime_types3($mimes) {
 add_filter('upload_mimes', 'wr_ebook_mime_types1', 1, 1);
 add_filter('upload_mimes', 'wr_ebook_mime_types2');
 add_filter('upload_mimes', 'wr_ebook_mime_types3');
+
+/**
+ * Filter the upload size limit for non-administrators.
+ *
+ * @param string $size Upload size limit (in bytes).
+ * @return int (maybe) Filtered size limit.
+ */
+/*function filter_site_upload_size_limit( $size ) {
+    // Set the upload size limit to 60 MB for users lacking the 'manage_options' capability.
+    if ( ! current_user_can( 'manage_options' ) ) {
+        // 60 MB.
+        $size = 30 * 1024 * 1024;
+    }
+    return $size;
+}
+add_filter( 'upload_size_limit', 'filter_site_upload_size_limit', 20 );*/
