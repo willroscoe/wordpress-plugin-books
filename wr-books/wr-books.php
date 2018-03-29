@@ -21,7 +21,20 @@ function book_custom_post_type() {
             ),
             'public' => true,
             'has_archive' => true,
+            'can_export' => true,
             'query_var' => true,
+            'supports' => array('title',
+                                'editor',
+                                'excerpt',
+                                'thumbnail',
+                                'author',
+                                'trackbacks',
+                                //'custom-fields',
+                                //'comments',
+                                'revisions',
+                                //'page-attributes', // (menu order, hierarchical must be true to show Parent option)
+                                //'post-formats',),
+                                ),
             'rewrite' => array('slug' => 'books'),
         )
     );
@@ -364,52 +377,6 @@ function include_template( $template )
     return $template;
 }
 
-
-
-// Class for url rewriting and loading the book reading template page
-/*class BookReaderClass
-{
-    public function init()
-    {
-        add_filter( 'template_include', array( $this, 'include_template' ) );
-        add_filter( 'init', array( $this, 'rewrite_rules' ) );
-    }
-
-    public function include_template( $template )
-    {
-        //try and get the query var we registered in our query_vars() function
-        $read_book = get_query_var( 'book_page' );
-
-        //if the query var has data, we must be on the right page, load our custom template
-        if ( $read_book ) {
-            return dirname( __FILE__ ) . '/reader.php';
-        }
-
-        return $template;
-    }
-
-    public function flush_rules()
-    {
-        $this->rewrite_rules();
-
-        flush_rewrite_rules();
-    }
-
-    public function rewrite_rules()
-    {
-        add_rewrite_tag( '%book_page%', '([^&]+)');
-        add_rewrite_tag( '%book_chapter%', '([^&]+)');
-        //add_rewrite_rule( '^books/([^/]*)/read/?', 'index.php?book_page=$matches[1]', 'top'); // ['api/(.*?)/(.+?)']
-        //add_rewrite_rule( '^books/([^/]+)/read/(.+?))', 'index.php?book_page=$matches[1]&book_chapter=$matches[2]', 'top'); // ['api/(.*?)/(.+?)']
-    }
-
-}
-
-add_action( 'plugins_loaded', array( new BookReaderClass, 'init' ) );
-
-// One time activation functions
-register_activation_hook( __FILE__ , array( new BookReaderClass, 'flush_rules' ) );*/
-
 /**********************************************
  ebook uploader - because epub is not allowed by default
  based on https://wordpress.org/plugins/allow-epub-and-mobi-formats-upload/
@@ -443,18 +410,175 @@ add_filter('upload_mimes', 'wr_ebook_mime_types1', 1, 1);
 add_filter('upload_mimes', 'wr_ebook_mime_types2');
 add_filter('upload_mimes', 'wr_ebook_mime_types3');
 
-/**
- * Filter the upload size limit for non-administrators.
- *
- * @param string $size Upload size limit (in bytes).
- * @return int (maybe) Filtered size limit.
- */
-/*function filter_site_upload_size_limit( $size ) {
-    // Set the upload size limit to 60 MB for users lacking the 'manage_options' capability.
-    if ( ! current_user_can( 'manage_options' ) ) {
-        // 60 MB.
-        $size = 30 * 1024 * 1024;
-    }
-    return $size;
+
+
+/************************************
+ * SIDEBAR WIDGET LISTING BOOK TITLES
+ * 
+ * http://www.wpexplorer.com/create-widget-plugin-wordpress/
+ * 
+*/
+
+// Register and load the widget
+function wr_book_titles_load_widget() {
+    register_widget( 'wr_book_titles_widget' );
 }
-add_filter( 'upload_size_limit', 'filter_site_upload_size_limit', 20 );*/
+add_action( 'widgets_init', 'wr_book_titles_load_widget' );
+ 
+// Creating the widget 
+class wr_book_titles_widget extends WP_Widget {
+
+    function __construct() {
+        parent::__construct(
+        
+        // Base ID of your widget
+        'wr_book_titles_widget', 
+        
+        // Widget name will appear in UI
+        __('Book List', 'wr_book_titles_widget_domain'), 
+        
+        // Widget description
+        array( 'description' => __( 'List all books', 'wr_book_titles_widget_domain' ), ) 
+        );
+    }
+    
+    // Creating widget front-end
+    public function widget( $args, $instance ) {
+
+        extract( $args );
+
+        // Check the widget options
+        $title = isset( $instance['title'] ) ? apply_filters( 'widget_title', $instance['title'] ) : '';
+        $select_orderby = isset( $instance['select_orderby'] ) ? $instance['select_orderby'] : '';
+        $select_order = isset( $instance['select_order'] ) ? $instance['select_order'] : '';
+        $checkbox_showimage = ! empty( $instance['checkbox_showimage'] ) ? $instance['checkbox_showimage'] : false;
+        $checkbox_hideauthors = ! empty( $instance['checkbox_hideauthors'] ) ? $instance['checkbox_hideauthors'] : false;
+        $checkbox_hidetitle = ! empty( $instance['checkbox_hidetitle'] ) ? $instance['checkbox_hidetitle'] : false;
+
+        // WordPress core before_widget hook (always include )
+        echo $before_widget;
+
+        // Display widget title if defined
+		if ( $title ) {
+			echo $before_title . $title . $after_title;
+		}
+        
+        // This is where you run the code and display the output
+        // https://codex.wordpress.org/Function_Reference/get_posts
+        $args = array( 'post_type' => 'wr_book', 'posts_per_page' => 30, 'post_status' => 'publish', 'orderby' => $select_orderby, 'order' => $select_order ); // orderby: title/date/author
+        global $post;
+        $thebooks = get_posts( $args );
+        echo __( '<div class="widget-books">', 'wr_book_titles_widget_domain' );
+        foreach ( $thebooks as $post ) : setup_postdata( $post );
+            $book_authors = get_post_meta(get_the_ID(), "book_authors", true); ?>
+                <div class="widget-book">
+                    <?php if (!$checkbox_hidetitle) { ?>
+                        <div class="widget-book-title"><a href="<?php echo the_permalink(); ?>"><?php echo the_title(); ?></a></div>
+                    <?php } ?>
+                    <?php if (!$checkbox_hideauthors) { ?>
+                        <div class="widget-book-authors"><?php echo $book_authors; ?></div>
+                    <?php } ?>
+                    <?php if ($checkbox_showimage) {
+                        matteringpress_post_thumbnail();
+                    } ?>
+                </div>
+            <?php
+        endforeach; 
+        wp_reset_postdata();
+        echo __( '</div>', 'wr_book_titles_widget_domain' );
+
+        // WordPress core after_widget hook (always include )
+	    echo $after_widget;
+    }
+    
+    // Widget Backend 
+    public function form( $instance ) {
+        // Set widget defaults
+        $defaults = array(
+            'title'    => 'Books',
+            'checkbox_showimage' => '',
+            'checkbox_hideauthors' => '',
+            'checkbox_hidetitle' => '',
+            'select_orderby' => 'date',
+            'select_order' => 'DESC',
+        );
+        
+        // Parse current settings with defaults
+	    extract( wp_parse_args( ( array ) $instance, $defaults ) ); ?>
+
+        <?php // Widget Title ?>
+            <p>
+                <label for="<?php echo esc_attr( $this->get_field_id( 'title' ) ); ?>"><?php _e( 'Widget Title', 'text_domain' ); ?></label>
+                <input class="widefat" id="<?php echo esc_attr( $this->get_field_id( 'title' ) ); ?>" name="<?php echo esc_attr( $this->get_field_name( 'title' ) ); ?>" type="text" value="<?php echo esc_attr( $title ); ?>" />
+            </p>
+            
+            <?php // Checkbox - hide title ?>
+            <p>
+                <input id="<?php echo esc_attr( $this->get_field_id( 'checkbox_hidetitle' ) ); ?>" name="<?php echo esc_attr( $this->get_field_name( 'checkbox_hidetitle' ) ); ?>" type="checkbox" value="1" <?php checked( '1', $checkbox_hidetitle ); ?> />
+                <label for="<?php echo esc_attr( $this->get_field_id( 'checkbox_hidetitle' ) ); ?>"><?php _e( 'Hide Book title', 'text_domain' ); ?></label>
+            </p>
+
+            <?php // Checkbox - hide authors ?>
+            <p>
+                <input id="<?php echo esc_attr( $this->get_field_id( 'checkbox_hideauthors' ) ); ?>" name="<?php echo esc_attr( $this->get_field_name( 'checkbox_hideauthors' ) ); ?>" type="checkbox" value="1" <?php checked( '1', $checkbox_hideauthors ); ?> />
+                <label for="<?php echo esc_attr( $this->get_field_id( 'checkbox_hideauthors' ) ); ?>"><?php _e( 'Hide Authors', 'text_domain' ); ?></label>
+            </p>
+
+            <?php // Checkbox - show cover thumbnail ?>
+            <p>
+                <input id="<?php echo esc_attr( $this->get_field_id( 'checkbox_showimage' ) ); ?>" name="<?php echo esc_attr( $this->get_field_name( 'checkbox_showimage' ) ); ?>" type="checkbox" value="1" <?php checked( '1', $checkbox_showimage ); ?> />
+                <label for="<?php echo esc_attr( $this->get_field_id( 'checkbox_showimage' ) ); ?>"><?php _e( 'Show cover thumbnail', 'text_domain' ); ?></label>
+            </p>
+
+            <?php // Dropdown - order by ?>
+            <p>
+                <label for="<?php echo $this->get_field_id( 'select_orderby' ); ?>"><?php _e( 'Order by', 'text_domain' ); ?></label>
+                <select name="<?php echo $this->get_field_name( 'select_orderby' ); ?>" id="<?php echo $this->get_field_id( 'select_orderby' ); ?>" class="widefat">
+                <?php
+                // Your options array
+                $options = array(
+                    'date' => __( 'Published date', 'text_domain' ),
+                    'title' => __( 'Title', 'text_domain' ),
+                );
+
+                // Loop through options and add each one to the select dropdown
+                foreach ( $options as $key => $name ) {
+                    echo '<option value="' . esc_attr( $key ) . '" id="' . esc_attr( $key ) . '" '. selected( $select_orderby, $key, false ) . '>'. $name . '</option>';
+
+                } ?>
+                </select>
+            </p>
+
+            <?php // Dropdown order ?>
+            <p>
+                <label for="<?php echo $this->get_field_id( 'select_order' ); ?>"><?php _e( 'Order', 'text_domain' ); ?></label>
+                <select name="<?php echo $this->get_field_name( 'select_order' ); ?>" id="<?php echo $this->get_field_id( 'select_order' ); ?>" class="widefat">
+                <?php
+                // Your options array
+                $options = array(
+                    'DESC' => __( 'Descending', 'text_domain' ),
+                    'ASC' => __( 'Ascending', 'text_domain' ),
+                );
+
+                // Loop through options and add each one to the select dropdown
+                foreach ( $options as $key => $name ) {
+                    echo '<option value="' . esc_attr( $key ) . '" id="' . esc_attr( $key ) . '" '. selected( $select_order, $key, false ) . '>'. $name . '</option>';
+
+                } ?>
+                </select>
+            </p>
+        <?php
+    }
+        
+    // Updating widget replacing old instances with new
+    public function update( $new_instance, $old_instance ) {
+        $instance = $old_instance;
+        $instance['title']    = isset( $new_instance['title'] ) ? wp_strip_all_tags( $new_instance['title'] ) : '';
+        $instance['checkbox_showimage'] = isset( $new_instance['checkbox_showimage'] ) ? 1 : false;
+        $instance['checkbox_hideauthors'] = isset( $new_instance['checkbox_hideauthors'] ) ? 1 : false;
+        $instance['checkbox_hidetitle'] = isset( $new_instance['checkbox_hidetitle'] ) ? 1 : false;
+        $instance['select_orderby'] = isset( $new_instance['select_orderby'] ) ? wp_strip_all_tags( $new_instance['select_orderby'] ) : '';
+        $instance['select_order'] = isset( $new_instance['select_order'] ) ? wp_strip_all_tags( $new_instance['select_order'] ) : '';
+        return $instance;
+    }
+} // Class wr_book_titles_widget ends here
