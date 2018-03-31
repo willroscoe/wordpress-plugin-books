@@ -582,3 +582,15 @@ class wr_book_titles_widget extends WP_Widget {
         return $instance;
     }
 } // Class wr_book_titles_widget ends here
+
+
+// Shortcode extension
+function wr_book_template_part( $output, $original_atts ) {
+	ob_start();
+	get_template_part( 'template-parts/books', get_post_type() );
+	$new_output = ob_get_clean();
+	if( !empty( $new_output ) )
+		$output = $new_output;
+	return $output;
+}
+add_action( 'display_posts_shortcode_output', 'wr_book_template_part', 10, 2 );
