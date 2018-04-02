@@ -594,3 +594,60 @@ function wr_book_template_part( $output, $original_atts ) {
 	return $output;
 }
 add_action( 'display_posts_shortcode_output', 'wr_book_template_part', 10, 2 );
+
+
+/*************************************************
+// public book functions - used in theme files etc
+*/
+
+// sub-title
+function get_book_subtitle()
+{
+    return get_post_meta(get_the_ID(), "book_subtitle", true);
+}
+
+// authors
+function get_book_authors()
+{
+    return get_post_meta(get_the_ID(), "book_authors", true);
+}
+
+// read online
+function get_epub_file_url()
+{
+    $epub_file_url = "";
+    $enable_readonline = get_post_meta( get_the_ID(), 'enable_readonline', true );
+    $epub_file_attachment = get_post_meta( get_the_ID(), 'epub_file_attachment', true );
+    if ($epub_file_attachment != "" and $enable_readonline == TRUE)
+    {
+        $epub_file_url = $epub_file_attachment['url'];
+    }
+    return $epub_file_url;
+}
+
+function get_download_links()
+{
+	$downloadlinks = "";
+	$downloadlinks = build_download_link($downloadlinks, "pdf", "PDF");
+	$downloadlinks = build_download_link($downloadlinks, "epub", "ePub");
+	$downloadlinks = build_download_link($downloadlinks, "mobi", "Kindle (mobi)");
+	return $downloadlinks;
+}
+
+function get_buy_book_link()
+{
+	return get_post_meta( get_the_ID(), 'buy_book_link', true );
+}
+
+// build download links for book pages
+function build_download_link($downloadlinks, $filetype, $filedesc)
+{
+	$thefile = get_post_meta( get_the_ID(), $filetype . '_file_attachment', true );
+	if ($thefile != "") {
+		if ($downloadlinks != "") {
+			$downloadlinks .= ", ";
+		}
+		$downloadlinks .= sprintf("<a href='%s'>" . $filedesc . "</a>", $thefile['url']);
+	}
+	return $downloadlinks;
+}
