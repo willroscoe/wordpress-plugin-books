@@ -38,6 +38,7 @@
                 // fileStorage.filePath = EPUBJS.filePath;
 
                 window.reader = ePubReader("<?php echo $epub_file_url; ?>");
+                //window.reader.book.displayChapter('/6/4[modes-of-knowing]!/4[modes-of-knowing]/4[_idContainer001]/6/1:87');
               }
             };
 
@@ -117,7 +118,7 @@
         <div id="viewer"></div>
         <div id="next" class="arrow">›</div>
 
-        <div id="loader"><img src="img/loader.gif"></div>
+        <div id="loader"><img src="<?php echo $baseurl; ?>img/loader.gif"></div>
       </div>
       <div class="modal md-effect-1" id="settings-modal">
           <div class="md-content">
