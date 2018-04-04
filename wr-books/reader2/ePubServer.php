@@ -1,14 +1,18 @@
 <?php
-require_once('./BookGluttonEpub.php');
-require_once('./BookGluttonZipEpub.php');
-require_once('./HtmlDomParser.php');
+require_once(dirname(__FILE__) . '/BookGluttonEpub.php');
+require_once(dirname(__FILE__) . '/BookGluttonZipEpub.php');
+require_once(dirname(__FILE__) . '/HtmlDomParser.php');
+require_once(dirname(__FILE__) . '/lessc.inc.php');
 
 class ePubServer {
 	public $lib;
 	public $base_link;
+	public $asset_to_process;
 	public $current_chapterId;
+	private $etag;
+	private $full_file_path;
 
-	public function __construct($file, $base_link=null) {
+	public function __construct($file, $base_link, $asset_to_process) {
 
 		// path to epub file
 		//$file = str_replace(DIR_REL . DIR_REL, DIR_REL, $file);
@@ -20,27 +24,32 @@ class ePubServer {
 		$this->lib = new BookGluttonEpub();
 		$this->lib->open($file);
 
-		/*if ($base_link===null) {
-			$page = Page::getCurrentPage();
-
-			$nav = new Navigation();
-			$this->base_link = $nav->getLinkToCollection($page);
-		} else {
-			$this->base_link = $base_link;
-		}*/
 		$this->base_link = $base_link;
+		$this->asset_to_process = urldecode($asset_to_process);
+		$this->full_file_path = $file;
 	}
 
 	// $asset is the url part after /read/
-	public function processRequest($asset)
+	public function processRequest()
 	{
+		if ($this->full_file_path && file_exists($this->full_file_path)) {
+			$this->etag = md5($this->asset_to_process . "-" . filemtime($this->full_file_path));
+
+			if (isset($_SERVER['HTTP_IF_NONE_MATCH']) &&
+				stripslashes($_SERVER['HTTP_IF_NONE_MATCH']) == "\"{$this->etag}\"") {
+				// Return visit and no modifications, so do not send anything
+				header ("HTTP/1.0 304 Not Modified");
+				die;
+			}
+		}
+
 		$filelist = $this->getFilelist();
 
 		// first, we try to find a file matching the exact path
 		$match = null;
 		foreach ($filelist as $file) {
 			// test if the current file ENDS WITH the (full) filename of the asset
-			if (strpos(strrev($file['name']), strrev($asset))===0) {
+			if (strpos(strrev($file['name']), strrev($this->asset_to_process))===0) {
 				$match = $file;
 			}
 		}
@@ -49,7 +58,7 @@ class ePubServer {
 		// (I don't understand some of the epub files out there...)
 		if (!$match) {
 			$best = array('matching'=>0, 'file'=>null);
-			$asset_parts = array_reverse(explode('/', $asset));
+			$asset_parts = array_reverse(explode('/', $this->asset_to_process));
 			foreach ($filelist as $file) {
 				$file_parts = array_reverse(explode('/', $file['name']));
 				$m = 0;
@@ -80,13 +89,15 @@ class ePubServer {
 				case "xhtml":
 				case "html":
 					// if this is a HTML file of some sorts, then display it as text
-					$this->renderText($match);
+					//$this->renderText($match);
+					$this->current_chapterId = $this->id($match);
 					break;
 
 				case "css":
 					// if this is a CSS file, prefix all selectors with our own
 					// identifier so that the styling only applies to one part of the page
 					$this->renderCSS($match);
+					die;
 					break;
 
 				default:
@@ -95,15 +106,14 @@ class ePubServer {
 					header("Content-Type: " . $this->getMimeFromExt($full_path));
 					header("Etag: \"{$this->etag}\"");
 					echo $this->getFile($full_path);
+					die;
 			}
-
-			die;
 		}
 
 		// couldn't serve asset - try to see if this is maybe a book chapter we need to display
-		$chapter = $asset;
+		$chapter = $this->asset_to_process;
 		$chapter_parts = explode('/', $chapter);
-		$toc = $this->epub->getTableOfContents();
+		$toc = $this->getTableOfContents();
 		for ($i=0; $i<count($chapter_parts); $i++) {
 			foreach ($toc as $toc_entry) {
 				// go through each part of the URL and see if it matches the table of contents
@@ -113,9 +123,8 @@ class ePubServer {
 
 					if ($i==count($chapter_parts)-1) {
 						// we've found a chapter to display! Render the appropriate page
-						// through this byzantine set of calls that I stole from some
-						// C5 internals
-						$this->renderText($this_page, $toc_entry['id']);
+						//$this->renderText($this_page, $toc_entry['id']);
+						$this->current_chapterId = $this->id($toc_entry['id']);
 					}
 					break;
 				}
@@ -128,7 +137,7 @@ class ePubServer {
 	 * @param $this_page
 	 * @param $file
 	 */
-	private function renderCSS($this_page, $file) {
+	private function renderCSS($file) {
 		$full_path = $file['name'];
 		$orig_css = explode("\n", $this->getFile($full_path));
 
@@ -145,12 +154,12 @@ class ePubServer {
 
 		$css = "$imports .epub { $rest }";
 
-		//$compiler = new \lessc();
-
 		header("Content-Type: text/css");
 		header("Etag: \"{$this->etag}\"");
-		//echo $compiler->compile($css);
-		echo $css;
+
+		$less = new lessc;
+		echo $less->compile($css);
+
 	}
 
 	private function getMimeFromExt($src) {
@@ -221,16 +230,12 @@ class ePubServer {
 			if ($this->id($item)==$id) {
 				return $item;
 			}
-			//if (isset($item['navPoints']))
-			//{
-				if (count($item['navPoints'])>0) {
-					$answer = $this->getItem($id, $item['navPoints']);
-					if (!is_null($answer)) {
-						return $answer;
-					}
+			if (count($item['navPoints'])>0) {
+				$answer = $this->getItem($id, $item['navPoints']);
+				if (!is_null($answer)) {
+					return $answer;
 				}
-			//}
-			
+			}
 		}
 		return null;
 	}
@@ -247,7 +252,7 @@ class ePubServer {
 		foreach ($this->lib->getNavPoints() as $point) {
 			$parts = parse_url($point['src']);
 			$partial_path = $parts['path'];
-			$partial_fragment = $parts['fragment'];//isset($parts['fragment']) ? '#'.$parts['fragment'] : ''; 
+			$partial_fragment = $parts['fragment']; 
 
 			foreach ($files as $f) {
 				if (strpos($f['name'], $partial_path) !== false) {
@@ -280,6 +285,7 @@ class ePubServer {
 
 	public function chapter($id, $__dummy__=false, $search=true, $path=false) {
 		$cache_filename =  $this->lib->packagepath . '/chapter-' . md5($id) . '.cache';
+		echo '***** cache_filename'.$cache_filename.' ********\n';
 		if (file_exists($cache_filename)) {
 			$html = file_get_contents($cache_filename);
 		} else {
@@ -363,7 +369,8 @@ class ePubServer {
 		}
 
 		// wrap everything in a '.epub' class so we can manipulate the CSS to only apply to this DIV
-		$html = "<div class='epub'>$html</div>";
+		//$html = "<div class='epub'>$html</div>";
+		$html = '<html><head><base href="' . $this->base_link . '/" target="_self"></head><body><div class="epub">'. $html . '</div></body></html>'; // need to include <base> as wp adds a trailing '/' to all requests which brakes the relative links in the epub html
 
 		// try to force 'correct' HTML, closes dangling tags that might mess up the rest of the page
 		$doc = new \DOMDocument('1.0', 'UTF-8');
@@ -371,6 +378,14 @@ class ePubServer {
 		$doc->loadHTML($html); // html content
 		libxml_use_internal_errors(false);
 		$doc->normalizeDocument();
+
+		// encode all '#' in a href links as wp added a trailing slash before '#'
+		/*$xpath = new DOMXpath($doc);
+		foreach ($xpath->query('//a[@href]') as $a) {
+			$href = $a->getAttribute('href');
+			$a->setAttribute('href', urlencode($href));
+		}*/
+
 		$html = utf8_decode($doc->saveHTML($doc->documentElement));
 
 		return $html;
@@ -380,12 +395,12 @@ class ePubServer {
 		return $this->chapter($id);
 	}
 
-	public function displayChapter($chapter_name_from_url)
+	public function displayChapter($chapter_name_from_url = "")
 	{
 		$toc = $this->getTableOfContents();
 
-		$chapter = $current_chapterId;
-		if ($chapter == "")
+		$chapter = $this->current_chapterId;
+		if ($chapter == "" and $chapter_name_from_url != "")
 		{
 			$chapter = $this->findChapterIdByNameInUrl($chapter_name_from_url);
 		}
@@ -397,7 +412,6 @@ class ePubServer {
 			$_GET["q"],
 			"<span class='selected'>" . filter_var($_GET["q"],FILTER_SANITIZE_SPECIAL_CHARS) . "</span>",
 			$html);
-		//echo $html;
 
 		$flat_toc = $this->getFlatTableOfContents($toc);
 		for ($i = 0; $i<count($flat_toc); $i++) {
@@ -420,11 +434,7 @@ class ePubServer {
 
 	function displayTableOfContents()
 	{
-		$chapter = $this->$current_chapterId;
-		if ($chapter == "")
-		{
-			$chapter = $this->findChapterIdByNameInUrl($chapter_name_from_url);
-		}
+		$chapter = $this->current_chapterId;
 		echo $this->renderTableOfContents($chapter, $this->getTableOfContents());
 	}
 
@@ -589,12 +599,9 @@ class ePubServer {
 		$list = array();
 		foreach ($toc as $item) {
 			$list[] = $item;
-			//if (isset($item['children']))
-			//{
-				if (count($item['children'])>0) {
-					$list = array_merge($list, $this->getFlatTableOfContents($item['children']));
-				}
-			//}
+			if (count($item['children'])>0) {
+				$list = array_merge($list, $this->getFlatTableOfContents($item['children']));
+			}
 		}
 		return $list;
 	}

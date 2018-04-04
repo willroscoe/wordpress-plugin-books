@@ -102,15 +102,19 @@ function buy_book_link_meta_box_markup($object)
     wp_nonce_field(basename(__FILE__), "buy_book_link_nonce");
     ?>
         <div>
-            <label for="buy_book_link">Amazon link</label>
+            <label for="buy_book_link">Buy Paperback link</label>
             <input type="text" name="buy_book_link" value="<?php echo get_post_meta($object->ID, "buy_book_link", true); ?>">
+        </div>
+        <div>
+            <label for="buy_book_hardback_link">Buy Hardback link</label>
+            <input type="text" name="buy_book_hardback_link" value="<?php echo get_post_meta($object->ID, "buy_book_hardback_link", true); ?>">
         </div>
     <?php
 }
 
 function buy_book_link_meta_box()
 {
-    add_meta_box("buy_book_link", "Buy Online link", "buy_book_link_meta_box_markup", "wr_book", "normal", "high", null);
+    add_meta_box("buy_book_link", "Buy Online links", "buy_book_link_meta_box_markup", "wr_book", "normal", "high", null);
 }
 
 add_action("add_meta_boxes", "buy_book_link_meta_box");
@@ -245,6 +249,12 @@ function save_book_data($id) {
     }   
     update_post_meta($id, "buy_book_link", $buy_book_link_value);
 
+    $buy_book_hardback_link_value = "";
+    if(isset($_POST["buy_book_hardback_link"]))
+    {
+        $buy_book_hardback_link_value = sanitize_text_field($_POST["buy_book_hardback_link"]);
+    }   
+    update_post_meta($id, "buy_book_hardback_link", $buy_book_hardback_link_value);
 
     // Save book file attachments
 
@@ -370,7 +380,7 @@ function include_template( $template )
             $epub_file_attachment = get_post_meta( $postid, 'epub_file_attachment', true );
             if ($epub_file_attachment != "")// and $enable_readonline == TRUE) // book file exisits
             {
-                return dirname( __FILE__ ) . '/reader/reader.php';
+                return dirname( __FILE__ ) . '/reader2/reader.php';
             }
         }
     }
@@ -651,3 +661,32 @@ function build_download_link($downloadlinks, $filetype, $filedesc)
 	}
 	return $downloadlinks;
 }
+
+function get_book_full_filesystem_path()
+{
+    global $wp;
+    $book_full_filesystem_path = "";
+    $current_url = add_query_arg( $wp->query_string, '', home_url( $wp->request ) );
+    $post_id = url_to_postid( $current_url );
+    $epub_file_attachment = get_post_meta( $post_id, 'epub_file_attachment', true );
+    if ($epub_file_attachment != "")
+    {
+        $book_full_filesystem_path = $epub_file_attachment['file'];
+    }
+    return $book_full_filesystem_path;
+}
+
+function book_active_item_classes($classes = array(), $menu_item = false) {
+    global $post;
+
+    // Get post ID, if nothing found set to NULL
+    $id = ( isset( $post->ID ) ? get_the_ID() : NULL );
+
+    // Checking if post ID exist...
+    if (isset( $id )){
+	    $classes[] = ($menu_item->url == get_post_type_archive_link($post->post_type)) ? 'current-menu-item active' : '';
+    }
+
+    return $classes;
+}
+add_filter( 'nav_menu_css_class', 'book_active_item_classes', 10, 2 );
