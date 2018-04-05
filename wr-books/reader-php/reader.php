@@ -7,10 +7,6 @@ require_once(dirname(__FILE__) . '/ePubServer.php');
 
 $basepath = "/books/" . get_query_var('wr_book') . "/read"; // path to be added to all the links in the epub book
 $asset_to_process = get_query_var('read'); // get the url part after '/read/'
-//$uri = parse_url( $_SERVER['REQUEST_URI'], PHP_URL_PATH );
-//echo utf8_decode(urldecode($_SERVER['REQUEST_URI']));
-//phpinfo();
-//die;
 $book_full_filesystem_path = get_book_full_filesystem_path();
 
 $epub = new ePubServer($book_full_filesystem_path, $basepath, $asset_to_process);

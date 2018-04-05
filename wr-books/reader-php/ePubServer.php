@@ -1,8 +1,7 @@
 <?php
-require_once(dirname(__FILE__) . '/BookGluttonEpub.php');
-require_once(dirname(__FILE__) . '/BookGluttonZipEpub.php');
-require_once(dirname(__FILE__) . '/HtmlDomParser.php');
-require_once(dirname(__FILE__) . '/lessc.inc.php');
+require_once(dirname(__FILE__) . '/libs/BookGluttonEpub.php');
+require_once(dirname(__FILE__) . '/libs/HtmlDomParser.php');
+require_once(dirname(__FILE__) . '/libs/lessc.inc.php');
 
 class ePubServer {
 	public $lib;
@@ -13,9 +12,6 @@ class ePubServer {
 	private $full_file_path;
 
 	public function __construct($file, $base_link, $asset_to_process) {
-
-		// path to epub file
-		//$file = str_replace(DIR_REL . DIR_REL, DIR_REL, $file);
 
 		if ((!is_string($file) || (is_string($file) && !file_exists($file)))) {
 			throw new \Exception("Cannot open non-existing ePub file " . (is_string($file)?$file:get_class($file)));
@@ -111,22 +107,40 @@ class ePubServer {
 		}
 
 		// couldn't serve asset - try to see if this is maybe a book chapter we need to display
-		$chapter = $this->asset_to_process;
-		$chapter_parts = explode('/', $chapter);
 		$toc = $this->getTableOfContents();
-		for ($i=0; $i<count($chapter_parts); $i++) {
-			foreach ($toc as $toc_entry) {
-				// go through each part of the URL and see if it matches the table of contents
-				// in the right position
-				if (basename($toc_entry['path'],'/')==basename($chapter_parts[$i])) {
-					$toc = $toc_entry['children'];
+		if ($this->asset_to_process != "")
+		{
+			$chapter = $this->asset_to_process;
+			$chapter_parts = explode('/', $chapter);
+			for ($i=0; $i<count($chapter_parts); $i++) {
+				foreach ($toc as $toc_entry) {
+					// go through each part of the URL and see if it matches the table of contents
+					// in the right position
+					if (basename($toc_entry['path'],'/')==basename($chapter_parts[$i])) {
+						$toc = $toc_entry['children'];
 
-					if ($i==count($chapter_parts)-1) {
-						// we've found a chapter to display! Render the appropriate page
-						//$this->renderText($this_page, $toc_entry['id']);
-						$this->current_chapterId = $this->id($toc_entry['id']);
+						if ($i==count($chapter_parts)-1) {
+							// we've found a chapter to display! Render the appropriate page
+							//$this->renderText($this_page, $toc_entry['id']);
+							$this->current_chapterId = $this->id($toc_entry['id']);
+						}
+						break;
 					}
-					break;
+				}
+			}
+		}
+
+		if ($this->current_chapterId == "") // no chapter selected so redirect to first item in the toc
+		{
+			if (is_array($toc))
+			{
+				if (count($toc) > 0)
+				{
+					if (isset($toc[0]['link']))
+					{
+						header("Location: $link" . $toc[0]['link']);
+						die;
+					}
 				}
 			}
 		}
@@ -159,7 +173,6 @@ class ePubServer {
 
 		$less = new lessc;
 		echo $less->compile($css);
-
 	}
 
 	private function getMimeFromExt($src) {
@@ -285,7 +298,6 @@ class ePubServer {
 
 	public function chapter($id, $__dummy__=false, $search=true, $path=false) {
 		$cache_filename =  $this->lib->packagepath . '/chapter-' . md5($id) . '.cache';
-		echo '***** cache_filename'.$cache_filename.' ********\n';
 		if (file_exists($cache_filename)) {
 			$html = file_get_contents($cache_filename);
 		} else {

@@ -1,4 +1,7 @@
 <?php
+/*
+NOTE: This class has been updated for the wr_book wordpress plugin. Search for 'Will Roscoe'
+*/
 
 //error_reporting(E_ALL | E_STRICT);
 define('JAVA_LOC', '/usr/bin/java');
@@ -219,7 +222,11 @@ END
 
   public function open($epub)
   {
- 
+    /* Added by Will Roscoe - BEGIN */
+    // make the temporary folder name a hash of the filename and modified datetime, so it doesn't create a new folder every request
+    $this->opsname = md5($epub . filemtime($epub) . filesize($epub)); // hash of file path/name and modified datetime
+    /* Added by Will Roscoe - END */
+
     $this->_za = new ZipArchive();
     if ($this->_za->open($epub) === TRUE) {
       $this->numFiles = $this->_za->numFiles;
@@ -253,7 +260,6 @@ END
   public function ingestRaw($data)
   {
     $tmpfile = DiskUtil::getTempDir().'/epubimport'.time().'.epub';
-    
     if(file_put_contents($tmpfile, $data)) {
       $this->open($tmpfile);
       // return tmpfile location so it can be cleaned up
@@ -267,7 +273,7 @@ END
    {
 
       $path = $this->packagepath;
-    $mimetype = $path . '/mimetype';
+      $mimetype = $path . '/mimetype';
       $opf = $path . '/'. $this->opfpath;
       $ncx = $path . '/'. $this->ncxpath;
       $metafile = $this->metapath.'/container.xml';
@@ -717,15 +723,27 @@ END
       $base_href = (preg_match('/\/$/', $hostpath)) ? $hostpath : $hostpath . '/';
       
       //$this->logerr('trying to cache url:'.$filename);
+
       $tmpwork = DiskUtil::getTempDir() . '/' . uniqid();
       if(!($remote = file_get_contents($filename))) {
         throw new Exception('cannot cache remote url');       
       }
-      if(!file_put_contents($tmpwork, $remote)) {
-        throw new Exception('cannot cache remote url');
-      } else {
+
+      if (strlen($remote) > 0) // This if clause added by Will Roscoe
+      {
+        if(!file_put_contents($tmpwork, $remote)) {
+          
+          throw new Exception('cannot cache remote url');
+        } else {
+          
+          $filename = $tmpwork;
+        }
+      }
+      else
+      {
         $filename = $tmpwork;
       }
+      
     }
     $snip = file_get_contents($filename,null,null,0,2);
     if(!$snip) { throw new Exception('file '.$filename.' does not exist'); }

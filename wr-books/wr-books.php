@@ -40,21 +40,21 @@ function book_custom_post_type() {
     );
 }
 
-/**************************
- Additional book meta fields
-    - Sub-Title
-    - Author(s)
-    - Thumbnail image
-    - Enable read online
-    - Buy online link
-    - ePub file link
-    - PDF download file link
-    - mobi (Kindle) download file link
-*/
+/**
+ * Additional book meta fields
+ *   - Sub-Title
+ *   - Author(s)
+ *   - Thumbnail image
+ *   - Enable read online
+ *   - Buy online link
+ *   - ePub file link
+ *   - PDF download file link
+ *   - mobi (Kindle) download file link
+ */
 
-/*************
-Book Sub-title
-*/
+/**
+ *Book Sub-title
+ */
 function book_subtitle_meta_box_markup($object)
 {
     wp_nonce_field(basename(__FILE__), "book_subtitle_nonce");
@@ -73,8 +73,8 @@ function book_subtitle_meta_box()
 
 add_action("add_meta_boxes", "book_subtitle_meta_box");
 
-/*************
-Book Authors
+/**
+* Book Authors
 */
 function book_authors_meta_box_markup($object)
 {
@@ -187,9 +187,9 @@ function add_attach_book_files()
 
 add_action("add_meta_boxes", "add_attach_book_files");
 
-/*
-Files meta box - End
-*/
+/**
+ * Files meta box - End
+ */
 
 
 function save_book_data($id) {
@@ -340,9 +340,10 @@ add_action('post_edit_form_tag', 'update_edit_form'); // allow form to upload fi
 add_action('save_post', 'save_book_data', 10 , 1); // this will only save if the post type is 'wr_book'. Use 'save_post' for any other post type.
 
 
-/**************************************************************
- file attachment script for admin - to delete a file attachment
-*/
+/**
+ * file attachment script for admin - to delete a file attachment
+ */
+
 function add_custom_attachment_script() {
  
     wp_register_script('custom-attachment-script', plugin_dir_url( __FILE__ ) . '/js/wp_custom_attachment.js');
@@ -358,7 +359,8 @@ add_action('init', 'wr_book_add_endpoints');
 function wr_book_add_endpoints()
 {
     add_filter( 'template_include', 'include_template', 99 );
-    add_rewrite_endpoint('read', EP_PERMALINK | EP_PAGES);
+    add_rewrite_endpoint('read', EP_PAGES | EP_PERMALINK);
+    add_rewrite_endpoint('fullread', EP_PAGES | EP_PERMALINK);
 }
 
 // if /read enpoint is hit then check if the 'reader' template/page should be used
@@ -370,27 +372,33 @@ function include_template( $template )
         $current_url = add_query_arg( $wp->query_string, '', home_url( $wp->request ) );
         $thepath = parse_url($current_url, PHP_URL_PATH);
 
-        if (preg_match('"/books/[^/]+/read/?"', $thepath)) // on book read online page
+        if (preg_match('"/books/[^/]+/([full]*read$|[full]*read/.*)"', $thepath)) // on book 'read online' page - either 'read' or 'read2'
         {
             // check there is a viewable book and readonline is enabled
-            global $wp;
-            $current_url = add_query_arg( $wp->query_string, '', home_url( $wp->request ) );
             $postid = url_to_postid( $current_url );
             $enable_readonline = get_post_meta( $postid, 'enable_readonline', true );
             $epub_file_attachment = get_post_meta( $postid, 'epub_file_attachment', true );
-            if ($epub_file_attachment != "")// and $enable_readonline == TRUE) // book file exisits
+            if ($epub_file_attachment != "" and $enable_readonline == TRUE) // book file exisits
             {
-                return dirname( __FILE__ ) . '/reader2/reader.php';
+                if (preg_match('"/books/[^/]+/fullread/?"', $thepath)) { // show book using the 'ed' php version
+                    return dirname( __FILE__ ) . '/reader-js/reader.php';
+                }
+                else
+                {
+                    return dirname( __FILE__ ) . '/reader-php/reader.php';
+                }
             }
         }
     }
     return $template;
 }
 
-/**********************************************
- ebook uploader - because epub is not allowed by default
- based on https://wordpress.org/plugins/allow-epub-and-mobi-formats-upload/
-*/
+/**
+ * Ebook uploader - because epub is not allowed by default
+ * 
+ * based on https://wordpress.org/plugins/allow-epub-and-mobi-formats-upload/
+ * 
+ */
 
 function wr_ebook_mime_types1($mime_types) {
 
@@ -422,12 +430,12 @@ add_filter('upload_mimes', 'wr_ebook_mime_types3');
 
 
 
-/************************************
+/**
  * SIDEBAR WIDGET LISTING BOOK TITLES
  * 
  * http://www.wpexplorer.com/create-widget-plugin-wordpress/
  * 
-*/
+ */
 
 // Register and load the widget
 function wr_book_titles_load_widget() {
@@ -594,7 +602,108 @@ class wr_book_titles_widget extends WP_Widget {
 } // Class wr_book_titles_widget ends here
 
 
-// Shortcode extension
+
+/**
+ * SIDEBAR WIDGET CMS PAGE TITLE
+ * 
+ * http://www.wpexplorer.com/create-widget-plugin-wordpress/
+ * 
+ */
+
+// Register and load the widget
+function wr_book_cms_page_title_load_widget() {
+    register_widget( 'wr_book_cms_page_title_widget' );
+}
+add_action( 'widgets_init', 'wr_book_cms_page_title_load_widget' );
+ 
+// Creating the widget 
+class wr_book_cms_page_title_widget extends WP_Widget {
+
+    function __construct() {
+        parent::__construct(
+        
+        // Base ID of your widget
+        'wr_book_cms_page_title_widget', 
+        
+        // Widget name will appear in UI
+        __('Page Title', 'wr_book_cms_page_title_widget_domain'), 
+        
+        // Widget description
+        array( 'description' => __( 'Just displays the current page title', 'wr_book_cms_page_title_widget_domain' ), ) 
+        );
+    }
+    
+    // Creating widget front-end
+    public function widget( $args, $instance ) {
+        global $post;
+        extract( $args );
+
+        // Check the widget options
+        $title = isset( $instance['title'] ) ? apply_filters( 'widget_title', $instance['title'] ) : '';
+        $checkbox_toplevel = ! empty( $instance['checkbox_toplevel'] ) ? $instance['checkbox_toplevel'] : false;
+
+        if ($title == "") // get the title of the top level page
+        {
+            if ($checkbox_toplevel)
+            {
+                $parents = array_reverse( get_ancestors( $the_post->ID, 'page' ) );
+                $title = get_the_title( $parents[0] );
+            }
+            else
+            {
+                $title = the_title();
+            }
+        }
+
+        // WordPress core before_widget hook (always include )
+        echo $before_widget;
+
+        // Display widget title if defined
+		if ( $title ) {
+			echo $before_title . $title . $after_title;
+		}
+
+        // WordPress core after_widget hook (always include )
+	    echo $after_widget;
+    }
+    
+    // Widget Backend 
+    public function form( $instance ) {
+        // Set widget defaults
+        $defaults = array(
+            'title'    => '',
+            'checkbox_toplevel' => '',
+        );
+        
+        // Parse current settings with defaults
+	    extract( wp_parse_args( ( array ) $instance, $defaults ) ); ?>
+
+        <?php // Widget Title ?>
+            <p>
+                <label for="<?php echo esc_attr( $this->get_field_id( 'title' ) ); ?>"><?php _e( 'Override Title', 'text_domain' ); ?></label>
+                <input class="widefat" id="<?php echo esc_attr( $this->get_field_id( 'title' ) ); ?>" name="<?php echo esc_attr( $this->get_field_name( 'title' ) ); ?>" type="text" value="<?php echo esc_attr( $title ); ?>" />
+            </p>
+            <?php // Checkbox - top level ?>
+            <p>
+                <input id="<?php echo esc_attr( $this->get_field_id( 'checkbox_toplevel' ) ); ?>" name="<?php echo esc_attr( $this->get_field_name( 'checkbox_toplevel' ) ); ?>" type="checkbox" value="1" <?php checked( '1', $checkbox_toplevel ); ?> />
+                <label for="<?php echo esc_attr( $this->get_field_id( 'checkbox_toplevel' ) ); ?>"><?php _e( 'Display top level title', 'text_domain' ); ?></label>
+            </p>
+        <?php
+    }
+        
+    // Updating widget replacing old instances with new
+    public function update( $new_instance, $old_instance ) {
+        $instance = $old_instance;
+        $instance['title']    = isset( $new_instance['title'] ) ? wp_strip_all_tags( $new_instance['title'] ) : '';
+        $instance['checkbox_toplevel'] = isset( $new_instance['checkbox_toplevel'] ) ? 1 : false;
+        return $instance;
+    }
+} // Class page_title widget ends here
+
+
+
+
+// Shortcode extension - Used by the Display Posts Shortcode plugin 
 function wr_book_template_part( $output, $original_atts ) {
 	ob_start();
 	get_template_part( 'template-parts/books', get_post_type() );
@@ -606,9 +715,12 @@ function wr_book_template_part( $output, $original_atts ) {
 add_action( 'display_posts_shortcode_output', 'wr_book_template_part', 10, 2 );
 
 
-/*************************************************
-// public book functions - used in theme files etc
-*/
+/**
+ * Public book functions - used in theme files etc
+ * 
+ * 
+ * 
+ */
 
 // sub-title
 function get_book_subtitle()
@@ -649,6 +761,11 @@ function get_buy_book_link()
 	return get_post_meta( get_the_ID(), 'buy_book_link', true );
 }
 
+function get_buy_hardback_book_link()
+{
+	return get_post_meta( get_the_ID(), 'buy_book_hardback_link', true );
+}
+
 // build download links for book pages
 function build_download_link($downloadlinks, $filetype, $filedesc)
 {
@@ -662,6 +779,11 @@ function build_download_link($downloadlinks, $filetype, $filedesc)
 	return $downloadlinks;
 }
 
+/**
+ * Get the full absolute filesystem path to the epub file
+ * 
+ * 
+ */
 function get_book_full_filesystem_path()
 {
     global $wp;
@@ -676,17 +798,51 @@ function get_book_full_filesystem_path()
     return $book_full_filesystem_path;
 }
 
+/**
+ * Makes the 'books' nave menu active if the request is on a book page. The book archive page automatically does this anyway.
+ * 
+ * 
+ */
 function book_active_item_classes($classes = array(), $menu_item = false) {
     global $post;
+    if ( !is_singular( 'post' ) ) {
+        // Get post ID, if nothing found set to NULL
+        $id = ( isset( $post->ID ) ? get_the_ID() : NULL );
 
-    // Get post ID, if nothing found set to NULL
-    $id = ( isset( $post->ID ) ? get_the_ID() : NULL );
-
-    // Checking if post ID exist...
-    if (isset( $id )){
-	    $classes[] = ($menu_item->url == get_post_type_archive_link($post->post_type)) ? 'current-menu-item active' : '';
+        if (isset( $id )){
+            // Getting the post type of the current post
+            $current_post_type = get_post_type_object(get_post_type($post->ID));
+            $current_post_type_slug = $current_post_type->rewrite['slug'];
+                
+            // Getting the URL of the menu item
+            $menu_slug = strtolower(trim($menu_item->url));
+            
+            // If the menu item URL contains the current post types slug add the current-menu-item class
+            if (strpos($menu_slug,$current_post_type_slug) !== false) {
+                $classes[] = 'current-menu-item active';
+            }
+            else
+            {
+                $classes[] = '';
+            }
+        }
     }
-
+    else // for individual blog posts
+    {
+        $id = ( isset( $post->ID ) ? get_the_ID() : NULL );
+        if (isset( $id )){
+            $menu_slug = strtolower(trim($menu_item->url));
+            if ($menu_slug == '/blog')
+            {
+                $classes[] = 'current-menu-item active';
+            }
+            else
+            {
+                $classes[] = '';
+            }
+        }
+    }
+	// Return the corrected set of classes to be added to the menu item
     return $classes;
 }
 add_filter( 'nav_menu_css_class', 'book_active_item_classes', 10, 2 );
