@@ -12,6 +12,12 @@ $book_full_filesystem_path = get_book_full_filesystem_path();
 $epub = new ePubServer($book_full_filesystem_path, $basepath, $asset_to_process);
 $epub->processRequest();
 
+$book_subtitle = get_book_subtitle();
+$book_authors = get_book_authors();
+$epub_file_url = get_epub_file_url();
+$buy_book_link = get_buy_book_link();
+$downloadlinks = get_download_links();
+
 // get the theme header
 get_header(); ?>
 
