@@ -818,8 +818,11 @@ function book_active_item_classes($classes = array(), $menu_item = false) {
             $menu_slug = strtolower(trim($menu_item->url));
             
             // If the menu item URL contains the current post types slug add the current-menu-item class
-            if (strpos($menu_slug,$current_post_type_slug) !== false) {
+            if (strpos($menu_slug,$current_post_type_slug) !== false or $menu_slug == '/about') {
                 $classes[] = 'current-menu-item active';
+            }
+            else if( in_array('current-page-ancestor', $classes) ){
+                $classes[] = 'current-menu-item active ';
             }
             else
             {
