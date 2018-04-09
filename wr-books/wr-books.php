@@ -84,6 +84,10 @@ function book_authors_meta_box_markup($object)
             <label for="book_authors">Authors</label>
             <textarea name="book_authors"><?php echo get_post_meta($object->ID, "book_authors", true); ?></textarea>
         </div>
+        <div>
+            <label for="book_pre_authors">Pre Authors text</label>
+            <input type="text" name="book_pre_authors" value="<?php echo get_post_meta($object->ID, "book_pre_authors", true); ?>">
+        </div>
     <?php
 }
 
@@ -222,7 +226,6 @@ function save_book_data($id) {
         update_post_meta( $id, 'enable_readonline', FALSE );
     }
 
-
     // Save 'sub-title'
     $book_subtitle_value = "";
     if(isset($_POST["book_subtitle"]))
@@ -231,7 +234,6 @@ function save_book_data($id) {
     }   
     update_post_meta($id, "book_subtitle", $book_subtitle_value);
 
-    
     // Save authors
     $book_authors_value = "";
     if(isset($_POST["book_authors"]))
@@ -240,6 +242,13 @@ function save_book_data($id) {
     }   
     update_post_meta($id, "book_authors", $book_authors_value);
 
+    // Save pre authors text
+    $book_pre_authors_value = "";
+    if(isset($_POST["book_pre_authors"]))
+    {
+        $book_pre_authors_value = sanitize_text_field($_POST["book_pre_authors"]);
+    }   
+    update_post_meta($id, "book_pre_authors", $book_pre_authors_value);
 
     // Save 'buy online' amazon link
     $buy_book_link_value = "";
@@ -268,7 +277,6 @@ function save_book_data($id) {
     upload_file_bytype($id, "mobi", array('application/octet-stream', 'x-mobipocket-ebook'));
      
 } // end - save_book_data
-
 
 
 function upload_file_bytype($id, $filetypename, $allowedmimetypes)
@@ -849,3 +857,30 @@ function book_active_item_classes($classes = array(), $menu_item = false) {
     return $classes;
 }
 add_filter( 'nav_menu_css_class', 'book_active_item_classes', 10, 2 );
+
+function get_book_links_block()
+{
+    $epub_file_url = get_epub_file_url();
+    $downloadlinks = get_download_links();
+    $buy_book_link = get_buy_book_link();
+    $buy_book_hardback_link = get_buy_hardback_book_link();
+    
+    echo "<ul class='link-block'>";
+    if ($epub_file_url != "") {
+        echo '<li><span class="label">Read</span> <span class="links"><a href="' . esc_url( get_permalink() ) . '/read" class="colorbox donate" data-colorbox-href="#donate-popup" data-colorbox-inline="true">online</a></span></li>';
+    }
+
+    if ($downloadlinks != "") {
+        echo '<li><span class="label">Download</span> <span class="links">' . $downloadlinks . '</span></li>';
+    }
+
+    if ($buy_book_link != "") {
+        echo '<li><span class="label">Buy</span> <span class="links"><a href="' . $buy_book_link . '">Paperback</a></span></li>';
+    }
+
+    if ($buy_book_hardback_link != "") {
+        echo '<li><span class="label">Buy</span> <span class="links"><a href="' . $buy_book_hardback_link . '">Hardback</a></span></li>';
+    }
+
+	echo "</ul>";
+}

@@ -14,9 +14,6 @@ $epub->processRequest();
 
 $book_subtitle = get_book_subtitle();
 $book_authors = get_book_authors();
-$epub_file_url = get_epub_file_url();
-$buy_book_link = get_buy_book_link();
-$downloadlinks = get_download_links();
 
 // get the theme header
 get_header(); ?>
@@ -38,15 +35,9 @@ get_header(); ?>
 		<h4><?php echo $book_authors; ?></h4>
 	
 		<?php matteringpress_post_thumbnail(); ?>
-		<ul class='link-block'>
-			<?php if ($downloadlinks != "") : ?>
-				<li><span class='label'>Download</span> <span class='links'><?php echo $downloadlinks ?></span></li>
-			<?php endif; ?>
 
-			<?php if ($buy_book_link != "") : ?>
-				<li><span class='label'>Buy</span> <span class='links'><a href='<?php echo $buy_book_link ?>'>Paperback</a></a></li>
-			<?php endif; ?>
-		</ul>
+		<?php get_book_links_block(); ?>
+
 	</section>
     <section class="book-toc">
     <?php 
