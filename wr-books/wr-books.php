@@ -9,7 +9,31 @@ Author: Will Roscoe
 Author URI: http://github.com/willroscoe
 License: MIT
 */
- 
+
+// Define book filetypes available
+$book_file_types = array("pdf", "epub", "mobi");
+
+$book_file_type['epub']['title'] = 'ePub';
+$book_file_type['epub']['mimetype'] = 'application/epub+zip';
+
+$book_file_type['pdf']['title'] = 'PDF';
+$book_file_type['pdf']['mimetype'] = 'application/pdf';
+
+$book_file_type['mobi']['title'] = 'Kindle (mobi)';
+$book_file_type['mobi']['mimetype'] = 'application/x-mobipocket-ebook';
+
+$book_file = array();
+
+/*$book_type_title['epub'] = 'ePub';
+$book_type_mimetype['epub'] = 'application/epub+zip';
+
+$book_type_title['pdf'] = 'PDF';
+$book_type_mimetype['pdf'] = 'application/pdf';
+
+$book_type_title['mobi'] = 'Kindle (mobi)';
+$book_type_mimetype['mobi'] = 'application/x-mobipocket-ebook';*/
+
+
 add_action( 'init', 'book_custom_post_type' );
  
 function book_custom_post_type() {
@@ -111,6 +135,10 @@ function buy_book_link_meta_box_markup($object)
         </div>
         <div>
             <label for="buy_book_hardback_link">Buy Hardback link</label>
+            <input type="text" name="buy_book_hardback_link" value="<?php echo get_post_meta($object->ID, "buy_book_hardback_link", true); ?>">
+        </div>
+        <div>
+            <label for="book_isbn">ISBN</label>
             <input type="text" name="buy_book_hardback_link" value="<?php echo get_post_meta($object->ID, "buy_book_hardback_link", true); ?>">
         </div>
     <?php
@@ -380,7 +408,7 @@ function include_template( $template )
         $current_url = add_query_arg( $wp->query_string, '', home_url( $wp->request ) );
         $thepath = parse_url($current_url, PHP_URL_PATH);
 
-        if (preg_match('"/books/[^/]+/([full]*read$|[full]*read/.*)"', $thepath)) // on book 'read online' page - either 'read' or 'read2'
+        if (preg_match('"/books/[^/]+/([full]*read$|[full]*read/.*)"', $thepath)) // on book 'read online' page - either 'read' or 'fullread'
         {
             // check there is a viewable book and readonline is enabled
             $postid = url_to_postid( $current_url );
@@ -755,15 +783,6 @@ function get_epub_file_url()
     return $epub_file_url;
 }
 
-function get_download_links()
-{
-	$downloadlinks = "";
-	$downloadlinks = build_download_link($downloadlinks, "pdf", "PDF");
-	$downloadlinks = build_download_link($downloadlinks, "epub", "ePub");
-	$downloadlinks = build_download_link($downloadlinks, "mobi", "Kindle (mobi)");
-	return $downloadlinks;
-}
-
 function get_buy_book_link()
 {
 	return get_post_meta( get_the_ID(), 'buy_book_link', true );
@@ -774,16 +793,60 @@ function get_buy_hardback_book_link()
 	return get_post_meta( get_the_ID(), 'buy_book_hardback_link', true );
 }
 
-// build download links for book pages
-function build_download_link($downloadlinks, $filetype, $filedesc)
+function refresh_book_file_details()
 {
-	$thefile = get_post_meta( get_the_ID(), $filetype . '_file_attachment', true );
-	if ($thefile != "") {
-		if ($downloadlinks != "") {
+    global $book_file_types;
+    global $book_file_type;
+    global $book_file;
+
+    $bookid = get_the_ID(); // book id
+    $need_to_refresh = TRUE;
+    if (isset($book_file[$bookid])) {
+        if (isset($book_file[$bookid]['pdf'])) {
+            if (isset($book_file[$bookid]['pdf']['url'])) {
+                if ($book_file[$bookid]['pdf']['url'] != "") {
+                    $need_to_refresh = FALSE;
+                }
+            }
+        } elseif (isset($book_file[$bookid]['epub'])) {
+            if (isset($book_file[$bookid]['epub']['url'])) {
+                if ($book_file[$bookid]['epub']['url'] != "") {
+                    $need_to_refresh = FALSE;
+                }
+            }
+        }
+    }
+
+    if ($need_to_refresh) {
+        for($x = 0; $x < count($book_file_types); $x++) { // loop book file types ie. pdf, epub etc
+            $file_attachment = get_post_meta( $bookid, $book_file_types[$x].'_file_attachment', true );
+            if ($file_attachment != "")
+            {
+                $book_file[$bookid][$book_file_types[$x]]['url'] = $file_attachment['url']; // set the book file url
+            }
+        }
+    }
+}
+
+function get_download_links()
+{
+    refresh_book_file_details();
+
+    $bookid = get_the_ID(); // book id
+
+    $downloadlinks = "";
+    
+    global $book_file_types;
+    global $book_file_type;
+    global $book_file;
+
+    for($x = 0; $x < count($book_file_types); $x++) {
+        if ($downloadlinks != "") {
 			$downloadlinks .= ", ";
 		}
-		$downloadlinks .= sprintf("<a href='%s'>" . $filedesc . "</a>", $thefile['url']);
-	}
+        $downloadlinks .= sprintf("<a href='%s'>" . $book_file_type[$book_file_types[$x]]['title'] . "</a>", $book_file[$bookid][$book_file_types[$x]]['url']);
+    }
+
 	return $downloadlinks;
 }
 
@@ -884,3 +947,56 @@ function get_book_links_block()
 
 	echo "</ul>";
 }
+
+/**
+ * Add book meta tags to /read pages to help with search engines, google scholar, hypothesis etc
+ * 
+ */
+add_action('wp_head', function(){
+    if (get_query_var( 'wr_book' )) // this is a book
+    {
+        global $wp;
+        global $post;
+
+        $bookid = get_the_ID();
+
+        $current_url = add_query_arg( $wp->query_string, '', home_url( $wp->request ) );
+        $thepath = parse_url($current_url, PHP_URL_PATH);
+
+        refresh_book_file_details();
+
+        global $book_file_types;
+        global $book_file_type;
+        global $book_file;
+
+        if (preg_match('"/books/[^/]+/([full]*read$|[full]*read/.*)"', $thepath)) // on book 'read online' page - either 'read' or 'fullread'
+        {
+            $authors = get_book_authors();
+
+            echo '<meta name="citation_title" content="' . get_the_title() . '">', PHP_EOL;
+            echo '<meta name="citation_author" content="' . $authors . '">', PHP_EOL;
+            echo '<meta name="citation_publication_date" content="' . the_date() . '">', PHP_EOL; // YYYY/MM/DD
+            if (isset($book_file[$bookid]['pdf']['url'])) {
+                echo '<meta name="citation_pdf_url" content="' . $book_file[$bookid][$book_file_types[$x]]['url'] . '">', PHP_EOL;
+            }
+
+            //echo '<meta name="citation_pdf_url" content="' .  . '">', PHP_EOL;
+
+            echo '<meta property="og:title" content="' . get_the_title() . '" />', PHP_EOL;
+            echo '<meta property="og:url" content="' . $current_url . '" />', PHP_EOL;
+            //echo '<meta property="og:image" content="' .  . '" />', PHP_EOL; // thumbnail
+            echo '<meta property="og:type" content="book" />', PHP_EOL;
+            echo '<meta property="book:author" content="' . $authors . '" />', PHP_EOL;
+            //echo '<meta property="book:isbn" content="' .  . '" />';
+            echo '<meta property="book:release_date" content="' . the_date() . '" />', PHP_EOL;
+            //echo '<meta property="book:tag" content="" />';
+            
+            for($x = 0; $x < count($book_file_types); $x++) {
+                if (isset($book_file[$bookid][$book_file_types[$x]]['url'])) {
+                    $thisurl = $book_file[$bookid][$book_file_types[$x]]['url'];
+                    echo '<link rel="alternate" type="' . $book_file_type[$book_file_types[$x]]['mimetype'] . '" href="' . $thisurl . '">', PHP_EOL;
+                }
+            }
+        }
+    }
+});
