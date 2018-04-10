@@ -997,6 +997,8 @@ add_action('wp_head', function(){
                     echo '<link rel="alternate" type="' . $book_file_type[$book_file_types[$x]]['mimetype'] . '" href="' . $thisurl . '">', PHP_EOL;
                 }
             }
+
+            wp_enqueue_script( 'hypothesis', 'https://hypothes.is/embed.js', array(), false, true );
         }
     }
 });
