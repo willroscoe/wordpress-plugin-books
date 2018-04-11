@@ -106,7 +106,7 @@ function book_authors_meta_box_markup($object)
     ?>
         <div>
             <label for="book_authors">Authors</label>
-            <textarea name="book_authors"><?php echo get_post_meta($object->ID, "book_authors", true); ?></textarea>
+            <textarea name="book_authors" style="width:300px"><?php echo get_post_meta($object->ID, "book_authors", true); ?></textarea>
         </div>
         <div>
             <label for="book_pre_authors">Pre Authors text</label>
@@ -765,9 +765,66 @@ function get_book_subtitle()
 }
 
 // authors
-function get_book_authors()
+function get_book_authors($inc_pre_authors = TRUE, $class_for_prefix = "before-authors")
 {
-    return get_post_meta(get_the_ID(), "book_authors", true);
+    refresh_book_authors();
+
+    global $book_file;
+
+    $result = "";
+    $bookid = get_the_ID(); // book id
+
+    $result = $book_file[$bookid]['authors'];
+
+    if ($inc_pre_authors) { // add any 'pre author' code
+        if (isset($book_file[$bookid]['preauthors'])) {
+            if ($book_file[$bookid]['preauthors'] != "") {
+                $result = '<span class="' . $class_for_prefix . '">'. $book_file[$bookid]['preauthors'] . '</span> ' . $result;
+            }
+        }
+    }
+
+    return $result;
+}
+
+function get_array_of_book_authors()
+{
+    refresh_book_authors();
+    global $book_file;
+    $result = array();
+    $trimmedresult = array();
+    $bookid = get_the_ID(); // book id
+    $authors = $book_file[$bookid]['authors'];
+    if (strlen($authors) > 0) {
+        if (strpos($authors, '|') !== FALSE) {
+            $result = explode('|', $authors);
+        } else { // otherwise split on ','
+            $result = explode(',', $authors);
+        }
+    }
+    for($x = 0; $x < count($result); $x++) {
+        $trimmedresult[$x] = trim($result[$x]);
+    }
+    return $trimmedresult;
+}
+
+function refresh_book_authors()
+{
+    global $book_file;
+
+    $bookid = get_the_ID(); // book id
+    $need_to_refresh = TRUE;
+    if (isset($book_file[$bookid]['authors'])) { 
+        if ($book_file[$bookid]['authors'] != "") {
+            $need_to_refresh = FALSE;
+        }
+    }
+    if ($need_to_refresh) {
+        $authors = get_post_meta(get_the_ID(), "book_authors", true);
+        $book_file[$bookid]['authors'] = $authors;
+        $pre_authors = get_post_meta(get_the_ID(), "book_pre_authors", true);
+        $book_file[$bookid]['preauthors'] = $pre_authors;
+    }
 }
 
 // read online
@@ -971,26 +1028,29 @@ add_action('wp_head', function(){
 
         if (preg_match('"/books/[^/]+/([full]*read$|[full]*read/.*)"', $thepath)) // on book 'read online' page - either 'read' or 'fullread'
         {
-            $authors = get_book_authors();
-
-            echo '<meta name="citation_title" content="' . get_the_title() . '">', PHP_EOL;
-            echo '<meta name="citation_author" content="' . $authors . '">', PHP_EOL;
-            echo '<meta name="citation_publication_date" content="' . the_date() . '">', PHP_EOL; // YYYY/MM/DD
-            if (isset($book_file[$bookid]['pdf']['url'])) {
-                echo '<meta name="citation_pdf_url" content="' . $book_file[$bookid][$book_file_types[$x]]['url'] . '">', PHP_EOL;
-            }
-
-            //echo '<meta name="citation_pdf_url" content="' .  . '">', PHP_EOL;
 
             echo '<meta property="og:title" content="' . get_the_title() . '" />', PHP_EOL;
             echo '<meta property="og:url" content="' . $current_url . '" />', PHP_EOL;
             //echo '<meta property="og:image" content="' .  . '" />', PHP_EOL; // thumbnail
             echo '<meta property="og:type" content="book" />', PHP_EOL;
-            echo '<meta property="book:author" content="' . $authors . '" />', PHP_EOL;
             //echo '<meta property="book:isbn" content="' .  . '" />';
             echo '<meta property="book:release_date" content="' . the_date() . '" />', PHP_EOL;
             //echo '<meta property="book:tag" content="" />';
-            
+
+            echo '<meta name="citation_title" content="' . get_the_title() . '">', PHP_EOL;
+
+            $authors = get_array_of_book_authors();
+
+            for($x = 0; $x < count($authors); $x++) {
+                echo '<meta name="citation_author" content="' . $authors[$x] . '">', PHP_EOL;
+                echo '<meta property="book:author" content="' . $authors[$x] . '" />', PHP_EOL;
+            }
+
+            echo '<meta name="citation_publication_date" content="' . the_date() . '">', PHP_EOL; // YYYY/MM/DD
+            if (isset($book_file[$bookid]['pdf']['url'])) {
+                echo '<meta name="citation_pdf_url" content="' . $book_file[$bookid]['pdf']['url'] . '">', PHP_EOL;
+            }
+    
             for($x = 0; $x < count($book_file_types); $x++) {
                 if (isset($book_file[$bookid][$book_file_types[$x]]['url'])) {
                     $thisurl = $book_file[$bookid][$book_file_types[$x]]['url'];
