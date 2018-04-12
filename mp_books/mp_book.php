@@ -1,9 +1,9 @@
 <?php
  
 /*
-Plugin Name: Book Post Type + ePub Reader Post Type Plugin
+Plugin Name: Book & News Post Types + ePub Reader Post Type Plugin
 Plugin URI: http://github.com/willroscoe
-Description: 'Book' custom post type + allow users to read ePub books on your site.
+Description: 'Book' & 'News' custom post types + allow users to read ePub books on your site.
 Version: 1.0
 Author: Will Roscoe
 Author URI: http://github.com/willroscoe
@@ -24,20 +24,10 @@ $book_file_type['mobi']['mimetype'] = 'application/x-mobipocket-ebook';
 
 $book_file = array();
 
-/*$book_type_title['epub'] = 'ePub';
-$book_type_mimetype['epub'] = 'application/epub+zip';
-
-$book_type_title['pdf'] = 'PDF';
-$book_type_mimetype['pdf'] = 'application/pdf';
-
-$book_type_title['mobi'] = 'Kindle (mobi)';
-$book_type_mimetype['mobi'] = 'application/x-mobipocket-ebook';*/
-
-
-add_action( 'init', 'book_custom_post_type' );
+add_action( 'init', 'mp_register_custom_post_types' );
  
-function book_custom_post_type() {
-    register_post_type( 'wr_book',
+function mp_register_custom_post_types() {
+    register_post_type( 'mp_book',
         array(
             'labels' => array(
                 'name' => __( 'Books' ),
@@ -60,6 +50,32 @@ function book_custom_post_type() {
                                 //'post-formats',),
                                 ),
             'rewrite' => array('slug' => 'books'),
+        )
+    );
+
+    register_post_type( 'mp_news',
+        array(
+            'labels' => array(
+                'name' => __( 'News' ),
+                'singular_name' => __( 'News' )
+            ),
+            'public' => true,
+            'has_archive' => true,
+            'can_export' => true,
+            'query_var' => true,
+            'supports' => array('title',
+                                'editor',
+                                'excerpt',
+                                'thumbnail',
+                                'author',
+                                'trackbacks',
+                                //'custom-fields',
+                                'comments',
+                                'revisions',
+                                //'page-attributes', // (menu order, hierarchical must be true to show Parent option)
+                                //'post-formats',),
+                                ),
+            'rewrite' => array('slug' => 'news'),
         )
     );
 }
@@ -92,7 +108,7 @@ function book_subtitle_meta_box_markup($object)
 
 function book_subtitle_meta_box()
 {
-    add_meta_box("book_subtitle", "Sub-title", "book_subtitle_meta_box_markup", "wr_book", "normal", "high", null);
+    add_meta_box("book_subtitle", "Sub-title", "book_subtitle_meta_box_markup", "mp_book", "normal", "high", null);
 }
 
 add_action("add_meta_boxes", "book_subtitle_meta_box");
@@ -117,7 +133,7 @@ function book_authors_meta_box_markup($object)
 
 function book_authors_meta_box()
 {
-    add_meta_box("book_authors", "Author(s)", "book_authors_meta_box_markup", "wr_book", "normal", "high", null);
+    add_meta_box("book_authors", "Author(s)", "book_authors_meta_box_markup", "mp_book", "normal", "high", null);
 }
 
 add_action("add_meta_boxes", "book_authors_meta_box");
@@ -146,7 +162,7 @@ function buy_book_link_meta_box_markup($object)
 
 function buy_book_link_meta_box()
 {
-    add_meta_box("buy_book_link", "Buy Online links", "buy_book_link_meta_box_markup", "wr_book", "normal", "high", null);
+    add_meta_box("buy_book_link", "Buy Online links", "buy_book_link_meta_box_markup", "mp_book", "normal", "high", null);
 }
 
 add_action("add_meta_boxes", "buy_book_link_meta_box");
@@ -172,7 +188,7 @@ function enable_readonline_meta_box_markup($object)
 
 function enable_readonline_meta_box()
 {
-    add_meta_box("enable_readonline", "Enable Read Online", "enable_readonline_meta_box_markup", "wr_book", "normal", "high", null);
+    add_meta_box("enable_readonline", "Enable Read Online", "enable_readonline_meta_box_markup", "mp_book", "normal", "high", null);
 }
 
 add_action("add_meta_boxes", "enable_readonline_meta_box");
@@ -214,7 +230,7 @@ function build_book_attachment_type_markup($filetypename)
 
 function add_attach_book_files()
 {
-    add_meta_box("attach_book_files", "Upload Book files", "attach_book_files_markup", "wr_book", "normal", "high", null);
+    add_meta_box("attach_book_files", "Upload Book files", "attach_book_files_markup", "mp_book", "normal", "high", null);
 }
 
 add_action("add_meta_boxes", "add_attach_book_files");
@@ -373,7 +389,7 @@ function update_edit_form() {
 
 add_action('post_edit_form_tag', 'update_edit_form'); // allow form to upload files
 
-add_action('save_post', 'save_book_data', 10 , 1); // this will only save if the post type is 'wr_book'. Use 'save_post' for any other post type.
+add_action('save_post', 'save_book_data', 10 , 1); // this will only save if the post type is 'mp_book'. Use 'save_post' for any other post type.
 
 
 /**
@@ -390,9 +406,9 @@ add_action('admin_enqueue_scripts', 'add_custom_attachment_script');
 
 
 // enable /read as an endpoint for books
-add_action('init', 'wr_book_add_endpoints');
+add_action('init', 'mp_book_add_endpoints');
 
-function wr_book_add_endpoints()
+function mp_book_add_endpoints()
 {
     add_filter( 'template_include', 'include_template', 99 );
     add_rewrite_endpoint('read', EP_PAGES | EP_PERMALINK);
@@ -402,7 +418,7 @@ function wr_book_add_endpoints()
 // if /read enpoint is hit then check if the 'reader' template/page should be used
 function include_template( $template )
 {
-    if (get_query_var( 'wr_book' )) // this is a book
+    if (get_query_var( 'mp_book' )) // this is a book
     {
         global $wp;
         $current_url = add_query_arg( $wp->query_string, '', home_url( $wp->request ) );
@@ -436,20 +452,20 @@ function include_template( $template )
  * 
  */
 
-function wr_ebook_mime_types1($mime_types) {
+function mp_ebook_mime_types1($mime_types) {
 
     $mime_types['epub'] = 'application/octet-stream'; 
     return $mime_types;
 }
 
-function wr_ebook_mime_types2($mimes) {
+function mp_ebook_mime_types2($mimes) {
     $mimes = array_merge($mimes, array(
         'epub|mobi' => 'application/octet-stream'
     ));
     return $mimes;
 }
 
-function wr_ebook_mime_types3($mimes) {
+function mp_ebook_mime_types3($mimes) {
 
     $new_file_types = array (
         'zip' => 'application/zip',
@@ -460,9 +476,9 @@ function wr_ebook_mime_types3($mimes) {
     return array_merge($mimes,$new_file_types);
 }
 
-add_filter('upload_mimes', 'wr_ebook_mime_types1', 1, 1);
-add_filter('upload_mimes', 'wr_ebook_mime_types2');
-add_filter('upload_mimes', 'wr_ebook_mime_types3');
+add_filter('upload_mimes', 'mp_ebook_mime_types1', 1, 1);
+add_filter('upload_mimes', 'mp_ebook_mime_types2');
+add_filter('upload_mimes', 'mp_ebook_mime_types3');
 
 
 
@@ -474,25 +490,25 @@ add_filter('upload_mimes', 'wr_ebook_mime_types3');
  */
 
 // Register and load the widget
-function wr_book_titles_load_widget() {
-    register_widget( 'wr_book_titles_widget' );
+function mp_book_titles_load_widget() {
+    register_widget( 'mp_book_titles_widget' );
 }
-add_action( 'widgets_init', 'wr_book_titles_load_widget' );
+add_action( 'widgets_init', 'mp_book_titles_load_widget' );
  
 // Creating the widget 
-class wr_book_titles_widget extends WP_Widget {
+class mp_book_titles_widget extends WP_Widget {
 
     function __construct() {
         parent::__construct(
         
         // Base ID of your widget
-        'wr_book_titles_widget', 
+        'mp_book_titles_widget', 
         
         // Widget name will appear in UI
-        __('Book List', 'wr_book_titles_widget_domain'), 
+        __('Book List', 'mp_book_titles_widget_domain'), 
         
         // Widget description
-        array( 'description' => __( 'List all books', 'wr_book_titles_widget_domain' ), ) 
+        array( 'description' => __( 'List all books', 'mp_book_titles_widget_domain' ), ) 
         );
     }
     
@@ -519,10 +535,10 @@ class wr_book_titles_widget extends WP_Widget {
         
         // This is where you run the code and display the output
         // https://codex.wordpress.org/Function_Reference/get_posts
-        $args = array( 'post_type' => 'wr_book', 'posts_per_page' => 30, 'post_status' => 'publish', 'orderby' => $select_orderby, 'order' => $select_order ); // orderby: title/date/author
+        $args = array( 'post_type' => 'mp_book', 'posts_per_page' => 30, 'post_status' => 'publish', 'orderby' => $select_orderby, 'order' => $select_order ); // orderby: title/date/author
         global $post;
         $thebooks = get_posts( $args );
-        echo __( '<div class="widget-books">', 'wr_book_titles_widget_domain' );
+        echo __( '<div class="widget-books">', 'mp_book_titles_widget_domain' );
         foreach ( $thebooks as $post ) : setup_postdata( $post );
             $book_authors = get_post_meta(get_the_ID(), "book_authors", true); ?>
                 <div class="widget-book">
@@ -539,7 +555,7 @@ class wr_book_titles_widget extends WP_Widget {
             <?php
         endforeach; 
         wp_reset_postdata();
-        echo __( '</div>', 'wr_book_titles_widget_domain' );
+        echo __( '</div>', 'mp_book_titles_widget_domain' );
 
         // WordPress core after_widget hook (always include )
 	    echo $after_widget;
@@ -635,7 +651,7 @@ class wr_book_titles_widget extends WP_Widget {
         $instance['select_order'] = isset( $new_instance['select_order'] ) ? wp_strip_all_tags( $new_instance['select_order'] ) : '';
         return $instance;
     }
-} // Class wr_book_titles_widget ends here
+} // Class mp_book_titles_widget ends here
 
 
 
@@ -647,25 +663,25 @@ class wr_book_titles_widget extends WP_Widget {
  */
 
 // Register and load the widget
-function wr_book_cms_page_title_load_widget() {
-    register_widget( 'wr_book_cms_page_title_widget' );
+function mp_book_cms_page_title_load_widget() {
+    register_widget( 'mp_book_cms_page_title_widget' );
 }
-add_action( 'widgets_init', 'wr_book_cms_page_title_load_widget' );
+add_action( 'widgets_init', 'mp_book_cms_page_title_load_widget' );
  
 // Creating the widget 
-class wr_book_cms_page_title_widget extends WP_Widget {
+class mp_book_cms_page_title_widget extends WP_Widget {
 
     function __construct() {
         parent::__construct(
         
         // Base ID of your widget
-        'wr_book_cms_page_title_widget', 
+        'mp_book_cms_page_title_widget', 
         
         // Widget name will appear in UI
-        __('Page Title', 'wr_book_cms_page_title_widget_domain'), 
+        __('Page Title', 'mp_book_cms_page_title_widget_domain'), 
         
         // Widget description
-        array( 'description' => __( 'Just displays the current page title', 'wr_book_cms_page_title_widget_domain' ), ) 
+        array( 'description' => __( 'Just displays the current page title', 'mp_book_cms_page_title_widget_domain' ), ) 
         );
     }
     
@@ -740,15 +756,20 @@ class wr_book_cms_page_title_widget extends WP_Widget {
 
 
 // Shortcode extension - Used by the Display Posts Shortcode plugin 
-function wr_book_template_part( $output, $original_atts ) {
-	ob_start();
-	get_template_part( 'template-parts/books', get_post_type() );
+function mp_book_template_part( $output, $original_atts ) {
+    ob_start();
+    if (get_post_type() == "mp_book") {
+        get_template_part( 'template-parts/books', get_post_type() );
+    }
+    else {
+        get_template_part( 'template-parts/content', get_post_format() );
+    }
 	$new_output = ob_get_clean();
 	if( !empty( $new_output ) )
 		$output = $new_output;
 	return $output;
 }
-add_action( 'display_posts_shortcode_output', 'wr_book_template_part', 10, 2 );
+add_action( 'display_posts_shortcode_output', 'mp_book_template_part', 10, 2 );
 
 
 /**
@@ -1010,7 +1031,7 @@ function get_book_links_block()
  * 
  */
 add_action('wp_head', function(){
-    if (get_query_var( 'wr_book' )) // this is a book
+    if (get_query_var( 'mp_book' )) // this is a book
     {
         global $wp;
         global $post;

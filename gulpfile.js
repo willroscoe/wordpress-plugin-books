@@ -4,13 +4,13 @@ var gulp         = require('gulp'),
     del          = require('del');
 
 gulp.task('copyall', function () {
-    gulp.src('./wr-books/**/*')
-        .pipe(gulp.dest('../../../Sites/wordpress/wp-content/plugins/wr-books/'));
+    gulp.src('./mp_books/**/*')
+        .pipe(gulp.dest('../../../Sites/wordpress/wp-content/plugins/mp_books/'));
 });
 
 gulp.task('deleteall', function () {
     return del([
-        '../../../Sites/wordpress/wp-content/plugins/wr-books/*'], {force:true}
+        '../../../Sites/wordpress/wp-content/plugins/mp_books/*'], {force:true}
     );
 });
 

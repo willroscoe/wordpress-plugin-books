@@ -5,7 +5,7 @@
 global $wp;
 require_once(dirname(__FILE__) . '/ePubServer.php');
 
-$basepath = "/books/" . get_query_var('wr_book') . "/read"; // path to be added to all the links in the epub book
+$basepath = "/books/" . get_query_var('mp_book') . "/read"; // path to be added to all the links in the epub book
 $asset_to_process = get_query_var('read'); // get the url part after '/read/'
 $book_full_filesystem_path = get_book_full_filesystem_path();
 
