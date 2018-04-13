@@ -221,8 +221,12 @@ function build_book_attachment_type_markup($filetypename)
 
     $thefile = get_post_meta(get_the_ID(), $thefile_form_input_name, true);
     $html = sprintf('<p class="description">Upload the %s file here</p><input type="file" id="%s" name="%s" value="" size="40" />', $filetypename, $thefile_form_input_name, $thefile_form_input_name);
-    $html .= sprintf('<input type="text" id="%s_url" name="%s_url" value="%s" size="40" />', $thefile_form_input_name, $thefile_form_input_name, $thefile['url']);
-    if(strlen(trim($thefile['url'])) > 0) {
+    $fileurl = "";
+    if ($thefile != null) {
+        $fileurl = $thefile['url'];
+    }
+    $html .= sprintf('<input type="text" id="%s_url" name="%s_url" value="%s" size="40" />', $thefile_form_input_name, $thefile_form_input_name, $fileurl);
+    if(strlen(trim($fileurl)) > 0) {
         $html .= '<a href="javascript:;" id="' . $thefile_form_input_name . '_delete">' . __('Delete File') . '</a>';
     }
     return $html;
@@ -360,24 +364,26 @@ function upload_file_bytype($id, $filetypename, $allowedmimetypes)
         // Grab a reference to the file associated with this post
         $doc = get_post_meta($id, $thefile_form_input_name, true);
          
-        // Grab the value for the URL to the file stored in the text element
-        $delete_flag = $_POST[$thefile_form_input_name . "_url"]; //get_post_meta($id, $thefile_form_input_name . '_url', true);
-         
-        // Determine if a file is associated with this post and if the delete flag has been set (by clearing out the input box)
-        if(strlen(trim($doc['url'])) > 0 && strlen(trim($delete_flag)) == 0) {
-         
-            // Attempt to remove the file. If deleting it fails, print a WordPress error.
-            if(unlink($doc['file'])) {
-                 
-                // Delete succeeded so reset the WordPress meta data
-                update_post_meta($id, $thefile_form_input_name, null);
-                update_post_meta($id, $thefile_form_input_name . '_url', '');
-                 
-            } else {
-                wp_die('There was an error trying to delete your file.');
-            } // end if/el;se
-             
-        } // end if
+        if ($doc != null) {
+            // Grab the value for the URL to the file stored in the text element
+            $delete_flag = $_POST[$thefile_form_input_name . "_url"]; //get_post_meta($id, $thefile_form_input_name . '_url', true);
+            
+            // Determine if a file is associated with this post and if the delete flag has been set (by clearing out the input box)
+            if(strlen(trim($doc['url'])) > 0 && strlen(trim($delete_flag)) == 0) {
+            
+                // Attempt to remove the file. If deleting it fails, print a WordPress error.
+                if(unlink($doc['file'])) {
+                    
+                    // Delete succeeded so reset the WordPress meta data
+                    update_post_meta($id, $thefile_form_input_name, null);
+                    update_post_meta($id, $thefile_form_input_name . '_url', '');
+                    
+                } else {
+                    wp_die('There was an error trying to delete your file.');
+                } // end if/el;se
+                
+            } // end if
+        }
  
     } // end if/else
 }

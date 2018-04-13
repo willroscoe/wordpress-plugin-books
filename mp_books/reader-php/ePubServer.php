@@ -45,8 +45,11 @@ class ePubServer {
 		$match = null;
 		foreach ($filelist as $file) {
 			// test if the current file ENDS WITH the (full) filename of the asset
-			if (strpos(strrev($file['name']), strrev($this->asset_to_process))===0) {
-				$match = $file;
+
+			if (isset($file['name']) and strlen($this->asset_to_process) > 0) {
+				if (strpos(strrev($file['name']), strrev($this->asset_to_process))===0) {
+					$match = $file;
+				}
 			}
 		}
 
