@@ -31,8 +31,8 @@ get_header(); ?>
 	<section id="subpages-widget-2" class="widget widget_subpages">
     <h2 class="widget-title">Read online</h2>
 		<h2><?php the_title(); ?></h2>
-		<h3><?php echo $book_subtitle; ?></h3>
-		<h4><?php echo $book_authors; ?></h4>
+		<h3 class="book-subtitle"><?php echo $book_subtitle; ?></h3>
+		<h4 class="book-authors"><?php echo $book_authors; ?></h4>
 	
 		<?php matteringpress_post_thumbnail(); ?>
 
