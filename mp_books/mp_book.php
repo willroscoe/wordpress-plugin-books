@@ -830,7 +830,7 @@ function get_array_of_book_authors()
         }
     }
     for($x = 0; $x < count($result); $x++) {
-        $trimmedresult[$x] = trim($result[$x]);
+        $trimmedresult[$x] = trim(str_replace('and ' , '', $result[$x])); // replace name stating with 'and ' and then trim
     }
     return $trimmedresult;
 }
@@ -925,10 +925,12 @@ function get_download_links()
     global $book_file;
 
     for($x = 0; $x < count($book_file_types); $x++) {
-        if ($downloadlinks != "") {
-			$downloadlinks .= ", ";
-		}
-        $downloadlinks .= sprintf("<a href='%s'>" . $book_file_type[$book_file_types[$x]]['title'] . "</a>", $book_file[$bookid][$book_file_types[$x]]['url']);
+        if ($book_file[$bookid][$book_file_types[$x]]['url'] != "") {
+            if ($downloadlinks != "") {
+                $downloadlinks .= ", ";
+            }
+            $downloadlinks .= sprintf("<a href='%s'>" . $book_file_type[$book_file_types[$x]]['title'] . "</a>", $book_file[$bookid][$book_file_types[$x]]['url']);
+        }
     }
 
 	return $downloadlinks;

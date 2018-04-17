@@ -46,4 +46,36 @@ get_header(); ?>
     </section>
 </aside><!-- #book-sidebar -->
 
+<script>
+    $(function() {
+        $(".epub p").each(function(i,e) {
+            $(this).attr('id', 'paragraph-'+(1+i));
+        });
+
+        $(window).on('hashchange', function() {
+            $(".epub p").removeClass('selected');
+            var p = $(".epub p#" + window.location.hash.substr(1));
+            if (typeof p !== "undefined") {
+                p.addClass('selected');
+                $('html, body').animate({
+                    scrollTop: p.offset().top
+                }, 1000);
+            }
+        });
+
+        if (window.location.hash) {
+            $(window).trigger('hashchange');
+        }
+        if ($(".epub span.selected")) {
+            $('html, body').animate({
+                scrollTop: $(".epub span.selected").offset().top
+            }, 1000);
+        }
+    });
+</script>
+<style>
+    .epub .selected { background-color: #fff684; padding: 20px; margin: 10px 0px; }
+    .epub span.selected { display: inline; padding:10px 20px; margin:0px; line-height:2; }
+</style>
+
 <?php get_footer(); ?>
