@@ -810,14 +810,21 @@ class mp_book_blog_post_meta_data_widget extends WP_Widget {
         $author_avatar_size = apply_filters( 'matteringpress_author_avatar_size', 100 );
         
         if(function_exists('coauthors')) {
-             echo get_avatar('mp@matteringpress.org', $author_avatar_size );
+            $allauthors = get_coauthors();
+            if (count($allauthors) > 1) {
+                echo get_avatar('mp@matteringpress.org', $author_avatar_size );
+            }
+            elseif (count($allauthors) == 1) {
+                echo get_avatar($allauthors[0]->user_email, $author_avatar_size );
+            }
+            
         } else {
             echo get_avatar(get_the_author_meta( 'user_email' ), $author_avatar_size );
         }
         
         echo '<div class="widget-post-authors-container">by <span class="widget-post-authors">';
-        if(function_exists('coauthors')) {
-            coauthors();
+        if(function_exists('coauthors_posts_links')) {
+            coauthors_posts_links();
         } else {
             the_author();
         }
