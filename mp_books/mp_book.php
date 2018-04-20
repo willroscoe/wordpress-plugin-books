@@ -1,9 +1,9 @@
 <?php
  
 /*
-Plugin Name: Book & News Post Types + ePub Reader Post Type Plugin
+Plugin Name: Book Post Type + ePub Reader Post Type Plugin
 Plugin URI: http://github.com/willroscoe
-Description: 'Book' & 'News' custom post types + allow users to read ePub books on your site.
+Description: 'Book' custom post type + allow users to read ePub books on your site.
 Version: 1.0
 Author: Will Roscoe
 Author URI: http://github.com/willroscoe
@@ -53,6 +53,7 @@ function mp_register_custom_post_types() {
         )
     );
 
+    /*
     register_post_type( 'mp_news',
         array(
             'labels' => array(
@@ -77,7 +78,7 @@ function mp_register_custom_post_types() {
                                 ),
             'rewrite' => array('slug' => 'news'),
         )
-    );
+    );*/
 }
 
 /**
