@@ -175,6 +175,7 @@ class ePubServer {
 		header("Etag: \"{$this->etag}\"");
 
 		$less = new lessc;
+		$less->setFormatter("compressed");
 		echo $less->compile($css);
 	}
 
@@ -301,7 +302,7 @@ class ePubServer {
 
 	public function chapter($id, $__dummy__=false, $search=true, $path=false) {
 		$cache_filename =  $this->lib->packagepath . '/chapter-' . md5($id) . '.cache';
-		if (file_exists($cache_filename)) {
+		if (1==0){//(file_exists($cache_filename)) {
 			$html = file_get_contents($cache_filename);
 		} else {
 			$nav_points = $this->getNavPoints();
@@ -343,7 +344,7 @@ class ePubServer {
 			$dom = $parser->str_get_html($html);
 
 			if (is_object($dom)) {
-				$links = $dom->getElementsByTagName('link');
+				$links = $dom->find('link');
 				if (!$partial_fragment) {
 					$body = $dom->getElementByTagName('body');
 				} else {
@@ -372,7 +373,52 @@ class ePubServer {
 				}
 
 				// put the HTML together
-				$html = $links;
+				$html = ''; // $links
+				// find all css links and inject the file text in the $html variable - this should stop the screen from flickering when loading the styles for the chapter/book 
+				
+				// load css - begin
+				$filelist = $this->getFilelist();
+				foreach($links as $link_element) {
+					$link_href = $link_element->href;
+					if ($this->endsWith(strtolower($link_href), '.css')) { // this is a css link
+						
+						// first, we try to find a file matching the exact path
+						$match = null;
+						foreach ($filelist as $file) {
+							// test if the current file ENDS WITH the (full) filename of the asset
+							if (isset($file['name']) and strlen($link_href) > 0) {
+								if (strpos(strrev($file['name']), strrev($link_href))===0) {
+									$match = $file;
+								}
+							}
+						}
+						if ($match) { // css file found in epub zip!
+							$full_path = $match['name'];
+							$orig_css = explode("\n", $this->getFile($full_path));
+
+							$imports = $rest = array();
+							foreach ($orig_css as $line) {
+								if (strpos(strtolower($line), "@import")===0) {
+									$imports[] = $line;
+								} else {
+									$rest[] = $line;
+								}
+							}
+							$imports = implode("\n", $imports);
+							$rest = implode("\n", $rest);
+
+							$css = "$imports .epub { $rest }";
+
+							$less = new lessc;
+							$less->setFormatter("compressed");
+							$html = $html . '<style>' . $less->compile($css) . '</style>';
+						}
+					} else {
+						$html .= $link_element;
+					}
+				}
+				// load css - end
+
 				if (is_string($body)) {
 					$html .= $body;
 				} else {
@@ -404,6 +450,14 @@ class ePubServer {
 		$html = utf8_decode($doc->saveHTML($doc->documentElement));
 
 		return $html;
+	}
+
+	public function endsWith($haystack, $needle)
+	{
+		$length = strlen($needle);
+
+		return $length === 0 || 
+		(substr($haystack, -$length) === $needle);
 	}
 
 	public function originalChapter($id) {
