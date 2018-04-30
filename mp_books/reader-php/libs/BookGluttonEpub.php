@@ -1,7 +1,7 @@
 <?php
-/*
-NOTE: This class has been updated for the wr_book wordpress plugin. Search for 'Will Roscoe'
-*/
+/***************************
+WARNING NOTE: This class has been updated for the wr_book wordpress plugin. Search for 'Will Roscoe' for changes
+****************************/
 
 //error_reporting(E_ALL | E_STRICT);
 define('JAVA_LOC', '/usr/bin/java');

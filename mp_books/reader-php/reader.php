@@ -47,7 +47,7 @@ get_header(); ?>
 </aside><!-- #book-sidebar -->
 
 <script>
-    $(function() {
+    jQuery(function($) {
         $(".epub p").each(function(i,e) {
             $(this).attr('id', 'paragraph-'+(1+i));
         });

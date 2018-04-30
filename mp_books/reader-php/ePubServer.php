@@ -23,6 +23,21 @@ class ePubServer {
 		$this->base_link = $base_link;
 		$this->asset_to_process = urldecode($asset_to_process);
 		$this->full_file_path = $file;
+
+		// if .../read/clearcache is the end of the url then clear any temp .cache files for this book
+		if ($this->asset_to_process == 'clearcache') {
+			$filecount = 0;
+			$files = glob($this->lib->packagepath . '/*.cache'); // get all file names
+			foreach($files as $file){ // iterate files
+				if(is_file($file)) {
+					unlink($file); // delete file
+					$filecount++;
+				}
+			}
+			header("Content-Type: text/plain");
+			echo 'Cache files deleted: ' . $filecount;
+			die;
+		}
 	}
 
 	// $asset is the url part after /read/
@@ -155,7 +170,7 @@ class ePubServer {
 	 * @param $file
 	 */
 	private function renderCSS($file) {
-		$full_path = $file['name'];
+		/*$full_path = $file['name'];
 		$orig_css = explode("\n", $this->getFile($full_path));
 
 		$imports = $rest = array();
@@ -176,7 +191,36 @@ class ePubServer {
 
 		$less = new lessc;
 		$less->setFormatter("compressed");
-		echo $less->compile($css);
+		echo $less->compile($css);*/
+
+		$loadedcss = $this->loadCssFile($file);
+
+		header("Content-Type: text/css");
+		header("Etag: \"{$this->etag}\"");
+		echo $loadedcss;
+	}
+
+
+	private function loadCssFile($file) {
+		$full_path = $file['name'];
+		$orig_css = explode("\n", $this->getFile($full_path));
+
+		$imports = $rest = array();
+		foreach ($orig_css as $line) {
+			if (strpos(strtolower($line), "@import")===0) {
+				$imports[] = $line;
+			} else {
+				$rest[] = $line;
+			}
+		}
+		$imports = implode("\n", $imports);
+		$rest = implode("\n", $rest);
+
+		$css = "$imports .epub { $rest }";
+
+		$less = new lessc;
+		$less->setFormatter("compressed");
+		return $less->compile($css);
 	}
 
 	private function getMimeFromExt($src) {
@@ -302,7 +346,7 @@ class ePubServer {
 
 	public function chapter($id, $__dummy__=false, $search=true, $path=false) {
 		$cache_filename =  $this->lib->packagepath . '/chapter-' . md5($id) . '.cache';
-		if (1==0){//(file_exists($cache_filename)) {
+		if (file_exists($cache_filename)) {
 			$html = file_get_contents($cache_filename);
 		} else {
 			$nav_points = $this->getNavPoints();
@@ -373,7 +417,8 @@ class ePubServer {
 				}
 
 				// put the HTML together
-				$html = ''; // $links
+				$html = '';
+				$cssstyles = '';
 				// find all css links and inject the file text in the $html variable - this should stop the screen from flickering when loading the styles for the chapter/book 
 				
 				// load css - begin
@@ -393,7 +438,10 @@ class ePubServer {
 							}
 						}
 						if ($match) { // css file found in epub zip!
-							$full_path = $match['name'];
+
+							$loadedcss = $this->loadCssFile($match);
+
+							/*$full_path = $match['name'];
 							$orig_css = explode("\n", $this->getFile($full_path));
 
 							$imports = $rest = array();
@@ -411,7 +459,8 @@ class ePubServer {
 
 							$less = new lessc;
 							$less->setFormatter("compressed");
-							$html = $html . '<style>' . $less->compile($css) . '</style>';
+							$html = $html . '<style>' . $less->compile($css) . '</style>';*/
+							$cssstyles = '<style>' . $loadedcss . '</style>';
 						}
 					} else {
 						$html .= $link_element;
@@ -426,28 +475,28 @@ class ePubServer {
 				}
 			}
 
+			// wrap everything in a '.epub' class so we can manipulate the CSS to only apply to this DIV
+			//$html = "<div class='epub'>$html</div>";
+			$html = '<html><head><base href="' . $this->base_link . '/" target="_self">' . $cssstyles . '</head><body><div class="epub">'. $html . '</div></body></html>'; // need to include <base> as wp adds a trailing '/' to all requests which brakes the relative links in the epub html
+
+			// try to force 'correct' HTML, closes dangling tags that might mess up the rest of the page
+			$doc = new \DOMDocument('1.0', 'UTF-8');
+			libxml_use_internal_errors(true);
+			$doc->loadHTML($html); // html content
+			libxml_use_internal_errors(false);
+			$doc->normalizeDocument();
+
+			// encode all '#' in a href links as wp added a trailing slash before '#'
+			/*$xpath = new DOMXpath($doc);
+			foreach ($xpath->query('//a[@href]') as $a) {
+				$href = $a->getAttribute('href');
+				$a->setAttribute('href', urlencode($href));
+			}*/
+
+			$html = utf8_decode($doc->saveHTML($doc->documentElement));
+
 			file_put_contents($cache_filename, $html);
 		}
-
-		// wrap everything in a '.epub' class so we can manipulate the CSS to only apply to this DIV
-		//$html = "<div class='epub'>$html</div>";
-		$html = '<html><head><base href="' . $this->base_link . '/" target="_self"></head><body><div class="epub">'. $html . '</div></body></html>'; // need to include <base> as wp adds a trailing '/' to all requests which brakes the relative links in the epub html
-
-		// try to force 'correct' HTML, closes dangling tags that might mess up the rest of the page
-		$doc = new \DOMDocument('1.0', 'UTF-8');
-		libxml_use_internal_errors(true);
-		$doc->loadHTML($html); // html content
-		libxml_use_internal_errors(false);
-		$doc->normalizeDocument();
-
-		// encode all '#' in a href links as wp added a trailing slash before '#'
-		/*$xpath = new DOMXpath($doc);
-		foreach ($xpath->query('//a[@href]') as $a) {
-			$href = $a->getAttribute('href');
-			$a->setAttribute('href', urlencode($href));
-		}*/
-
-		$html = utf8_decode($doc->saveHTML($doc->documentElement));
 
 		return $html;
 	}
