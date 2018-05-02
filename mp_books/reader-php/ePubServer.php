@@ -37,6 +37,8 @@ class ePubServer {
 			header("Content-Type: text/plain");
 			echo 'Cache files deleted: ' . $filecount;
 			die;
+		} elseif ($this->asset_to_process == 'search') {
+
 		}
 	}
 
@@ -54,7 +56,7 @@ class ePubServer {
 			}
 		}
 
-		$filelist = $this->getFilelist();
+		/*$filelist = $this->getFilelist();
 
 		// first, we try to find a file matching the exact path
 		$match = null;
@@ -91,7 +93,9 @@ class ePubServer {
 			if ($best['matching']>0) {
 				$match = $best['file'];
 			}
-		}
+		}*/
+
+		$match = findFileInEpubByFilename($this->asset_to_process);
 
 		// if we have a match, render the file
 		if ($match) {
@@ -163,6 +167,52 @@ class ePubServer {
 			}
 		}
 	}
+
+	private function findFileInEpubByFilename($possibleFilename) {
+
+		$filelist = $this->getFilelist();
+
+		// first, we try to find a file matching the exact path
+		$match = null;
+		foreach ($filelist as $file) {
+			// test if the current file ENDS WITH the (full) filename of the asset
+
+			if (isset($file['name']) and strlen($possibleFilename) > 0) {
+				if (strpos(strrev($file['name']), strrev($possibleFilename))===0) {
+					$match = $file;
+				}
+			}
+		}
+
+		// if that doesn't work, try if we can at least find a file with the same filename
+		// (I don't understand some of the epub files out there...)
+		if (!$match) {
+			$best = array('matching'=>0, 'file'=>null);
+			$asset_parts = array_reverse(explode('/', $possibleFilename));
+			foreach ($filelist as $file) {
+				$file_parts = array_reverse(explode('/', $file['name']));
+				$m = 0;
+				for ($i=0; $i<min(count($file_parts), count($asset_parts)); $i++) {
+					if ($file_parts[$i]==$asset_parts[$i]) {
+						$m++;
+					} else {
+						break;
+					}
+				}
+				if ($m>$best['matching']) {
+					$best['matching'] = $m;
+					$best['file'] = $file;
+				}
+			}
+			if ($best['matching']>0) {
+				$match = $best['file'];
+			}
+		}
+
+		return $match;
+	}
+
+
 	/**
 	 * Prefixes all CSS statements with '.epub' so it only applies to a specific part of the page
 	 *
@@ -170,29 +220,6 @@ class ePubServer {
 	 * @param $file
 	 */
 	private function renderCSS($file) {
-		/*$full_path = $file['name'];
-		$orig_css = explode("\n", $this->getFile($full_path));
-
-		$imports = $rest = array();
-		foreach ($orig_css as $line) {
-			if (strpos(strtolower($line), "@import")===0) {
-				$imports[] = $line;
-			} else {
-				$rest[] = $line;
-			}
-		}
-		$imports = implode("\n", $imports);
-		$rest = implode("\n", $rest);
-
-		$css = "$imports .epub { $rest }";
-
-		header("Content-Type: text/css");
-		header("Etag: \"{$this->etag}\"");
-
-		$less = new lessc;
-		$less->setFormatter("compressed");
-		echo $less->compile($css);*/
-
 		$loadedcss = $this->loadCssFile($file);
 
 		header("Content-Type: text/css");
@@ -438,28 +465,7 @@ class ePubServer {
 							}
 						}
 						if ($match) { // css file found in epub zip!
-
 							$loadedcss = $this->loadCssFile($match);
-
-							/*$full_path = $match['name'];
-							$orig_css = explode("\n", $this->getFile($full_path));
-
-							$imports = $rest = array();
-							foreach ($orig_css as $line) {
-								if (strpos(strtolower($line), "@import")===0) {
-									$imports[] = $line;
-								} else {
-									$rest[] = $line;
-								}
-							}
-							$imports = implode("\n", $imports);
-							$rest = implode("\n", $rest);
-
-							$css = "$imports .epub { $rest }";
-
-							$less = new lessc;
-							$less->setFormatter("compressed");
-							$html = $html . '<style>' . $less->compile($css) . '</style>';*/
 							$cssstyles = '<style>' . $loadedcss . '</style>';
 						}
 					} else {
@@ -596,7 +602,7 @@ class ePubServer {
 
 	function findChapterIdByNameInUrl($nameInUrl = "")
 	{
-		$filelist = $this->getFilelist();
+		/*$filelist = $this->getFilelist();
 
 		// first, we try to find a file matching the exact path
 		$match = null;
@@ -630,7 +636,9 @@ class ePubServer {
 			if ($best['matching']>0) {
 				$match = $best['file'];
 			}
-		}
+		}*/
+
+		$match = findFileInEpubByFilename($nameInUrl);
 
 		// if we have a match, return the $id
 		if ($match) {
@@ -677,6 +685,70 @@ class ePubServer {
 				}
 			}
 		}
+	}
+
+	public function displaySearchResults($searchText) {
+		// get chapters
+		$toc = $this->getTableOfContents();
+		// loop each chapter
+		foreach ($toc as $toc_entry) {
+			// get chapter id of this toc entry
+			$thisChapterId = $this->id($toc_entry['id']);
+			if ($thisChapterId != "")
+			{
+				$chapterResultsSummaryText = "";
+				// load chapter html text
+				
+				$html = $this->chapter($thisChapterId);
+				
+				$parser = new HtmlDomParser();
+				/** @var \simple_html_dom $dom */
+				$dom = $parser->str_get_html($html);
+				if (is_object($dom)) {
+					$body = $dom->find('body');
+					$bodytext = $body->find('text');
+					// search chapter text (striped of tags)
+
+					// loop each element
+					foreach ($bodytext as $key=>$bodyElement)
+					{
+						$plaintext = $bodyElement->plaintext; // get the plain text from the bodyElement
+
+						$occurences = findPositionsOfAllOccurrencesOfString($plaintext, $searchText);
+						if (isset($occurences)) {
+							if (count($occurences) > 0) { // search term found
+								// get some text either side of the search term
+
+							}
+						}
+
+						/*if (strpos($plaintext,$searchText) !== FALSE) // search term found
+						{
+							echo $key.": text=".$plaintext."<br />"
+								."--- parent tag=".$bodyElement->parent()->tag."<br />"
+								."--- parent id=".$bodyElement->parent()->id."<br />";
+						}*/
+					}
+					
+
+					// build html output: title, summary text with search term highlighted; link to chapter with search term appended to url ?q={search term}
+	
+				}
+			}
+		}
+		// output html
+	}
+
+	private function findPositionsOfAllOccurrencesOfString($haystack, $needle) {
+		$lastPos = 0;
+		$positions = array();
+
+		while (($lastPos = strpos($haystack, $needle, $lastPos))!== false) {
+			$positions[] = $lastPos;
+			$lastPos = $lastPos + strlen($needle);
+		}
+
+		return $positions;
 	}
 
 	public function id($item) {

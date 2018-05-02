@@ -420,6 +420,7 @@ function mp_book_add_endpoints()
     add_filter( 'template_include', 'include_template', 99 );
     add_rewrite_endpoint('read', EP_PAGES | EP_PERMALINK);
     add_rewrite_endpoint('fullread', EP_PAGES | EP_PERMALINK);
+    add_rewrite_endpoint('search', EP_PAGES | EP_PERMALINK);
 }
 
 // if /read enpoint is hit then check if the 'reader' template/page should be used
@@ -447,6 +448,8 @@ function include_template( $template )
                     return dirname( __FILE__ ) . '/reader-php/reader.php';
                 }
             }
+        } elseif (preg_match('"/books/[^/]+/search$|search/.*"', $thepath)) { // search results
+            return dirname( __FILE__ ) . '/reader-php/search.php';
         }
     }
     return $template;
