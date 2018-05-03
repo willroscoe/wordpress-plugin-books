@@ -533,7 +533,7 @@ class ePubServer {
 
 		// crude highlighting of search terms. Does not work across HTML tags! So you can't highlight
 		// a quote if it (for example) has italic or bold text in it (pfffff)
-		echo str_replace(
+		echo str_ireplace(
 			$_GET["q"],
 			"<span class='selected'>" . filter_var($_GET["q"],FILTER_SANITIZE_SPECIAL_CHARS) . "</span>",
 			$html);
@@ -694,6 +694,7 @@ class ePubServer {
 			$searchText = $this->searchterm;
 
 		$finalOutput = '';
+		$totalnumberofoccurrences = 0;
 		$numberOfCharactersToShowBothSidesOfSearchTerm = 40;
 		// get chapters
 		$toc = $this->getTableOfContents();
@@ -719,6 +720,7 @@ class ePubServer {
 						
 						//$plaintext = $bodyElement->plaintext; // get the plain text from the bodyElement
 						$numberofoccurrences = substr_count(strtolower($plaintext), strtolower($searchText));
+						$totalnumberofoccurrences = $totalnumberofoccurrences + $numberofoccurrences;
 						if ($numberofoccurrences > 0) {
 							// find first 2 occurrences
 							$firstoccurrence = stripos($plaintext, $searchText);
@@ -769,15 +771,19 @@ class ePubServer {
 						$format = '<article><h2><a href="%s">%s</a></h2><div>%s</div></article>';
 
 						$finalOutput = $finalOutput . sprintf($format, $chapterLink, $chapterTitle, $chapterResultsSummaryText);
-
-						
 					}
 				}
 			}
 		}
 		// output html
-		echo '<h1>Search Results for: \'' . $searchText . '\'</h1><p>Found in the following chapters</p>';
-		echo $finalOutput;
+		echo '<h1>Search Results for: \'' . $searchText . '\'</h1>';
+		if ($totalnumberofoccurrences > 0) {
+			echo '<p>Found in the following chapters</p>';
+			echo $finalOutput;
+		} else {
+			echo '<p>No results</p>';
+		}
+		
 	}
 
 	public function findPositionsOfAllOccurrencesOfString($haystack, $needle) {
