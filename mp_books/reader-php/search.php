@@ -4,19 +4,23 @@
  */
 global $wp;
 require_once(dirname(__FILE__) . '/ePubServer.php');
-
-$basepath = "/books/" . get_query_var('mp_book') . "/read"; // path to be added to all the links in the epub book
+$basepath = "/books/" . get_query_var('mp_book');
+$basepath_read = $basepath . "/read"; // path to be added to all the links in the epub book
 $asset_to_process = get_query_var('search'); // get the url part after '/search/'
 $book_full_filesystem_path = get_book_full_filesystem_path();
-
-$epub = new ePubServer($book_full_filesystem_path, $basepath, $asset_to_process);
-$epub->processRequest();
+$searchterm = $_POST["searchterm"];
+$epub = new ePubServer($book_full_filesystem_path, $basepath_read, $asset_to_process, $searchterm);
+//$epub->processRequest();
 
 $book_subtitle = get_book_subtitle();
 $book_authors = get_book_authors();
 
 // get the theme header
-get_header(); ?>
+get_header(); 
+
+echo '<h1>asset_to_process: ' . $asset_to_process . '</h1>';
+echo '<h1>searchterm: ' . $searchterm . '</h1>';
+?>
 
 <div id="primary" class="content-area">
 	<main id="main" class="site-main" role="main">
@@ -39,6 +43,10 @@ get_header(); ?>
 		<?php get_book_links_block(); ?>
 
 	</section>
+    <section id="search-book-form" class="widget widget_search-book">
+        <h2 class="widget-title">Search in book</h2>
+        <form action="<?php echo $basepath . '/search' ?>" method="post"><input type="text" name="search" /> <input type="submit" name="submit" value="submit" /></form>
+    </section>
     <section class="book-toc">
     <?php 
         $epub->displayTableOfContents();

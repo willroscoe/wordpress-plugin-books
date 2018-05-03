@@ -11,7 +11,7 @@ class ePubServer {
 	private $etag;
 	private $full_file_path;
 
-	public function __construct($file, $base_link, $asset_to_process) {
+	public function __construct($file, $base_link, $asset_to_process, $searchterm = "") {
 
 		if ((!is_string($file) || (is_string($file) && !file_exists($file)))) {
 			throw new \Exception("Cannot open non-existing ePub file " . (is_string($file)?$file:get_class($file)));
@@ -688,6 +688,8 @@ class ePubServer {
 	}
 
 	public function displaySearchResults($searchText) {
+		$finalOutput = '';
+		$numberOfCharactersToShowBothSidesOfSearchTerm = 20;
 		// get chapters
 		$toc = $this->getTableOfContents();
 		// loop each chapter
@@ -696,6 +698,8 @@ class ePubServer {
 			$thisChapterId = $this->id($toc_entry['id']);
 			if ($thisChapterId != "")
 			{
+				$chapterTitle = $toc_entry['title'];
+				$chapterLink = $toc_entry['link'] . '?q=' . $searchText; // add search term ?q=
 				$chapterResultsSummaryText = "";
 				// load chapter html text
 				
@@ -714,14 +718,26 @@ class ePubServer {
 					{
 						$plaintext = $bodyElement->plaintext; // get the plain text from the bodyElement
 
-						$occurences = findPositionsOfAllOccurrencesOfString($plaintext, $searchText);
-						if (isset($occurences)) {
-							if (count($occurences) > 0) { // search term found
-								// get some text either side of the search term
-
+						$occurrences = findPositionsOfAllOccurrencesOfString($plaintext, $searchText);
+						if (isset($occurrences) && count($occurrences) > 0) { // search term found
+							// get some text either side of the search term
+							foreach ($occurrences as $occurrence) {
+								// find the position of the X number of spaces before the search term
+								$startpos = $occurrence - $numberOfCharactersToShowBothSidesOfSearchTerm;
+								if ($startpos < 0)
+									$startpos = 0;
+								// find end of text to show
+								$endpos = ($numberOfCharactersToShowBothSidesOfSearchTerm * 2) + strlen($searchText);
+								$selectedText = ' ...' . substr($plaintext, $startpos, $endpos) . '... ';
+								// add style to search term
+								$selectedText = str_replace(
+									$searchText,
+									"<span class='selected'>" . $searchText . "</span>",
+									$selectedText);
+								
+								$chapterResultsSummaryText = $chapterResultsSummaryText . $selectedText;
 							}
 						}
-
 						/*if (strpos($plaintext,$searchText) !== FALSE) // search term found
 						{
 							echo $key.": text=".$plaintext."<br />"
@@ -730,13 +746,17 @@ class ePubServer {
 						}*/
 					}
 					
-
 					// build html output: title, summary text with search term highlighted; link to chapter with search term appended to url ?q={search term}
-	
+					if (strlen($chapterResultsSummaryText) > 0) {
+						$format = '<article><h2><a href="%s">%s</a></h2><div>%s</div></article>';
+
+						$finalOutput = $finalOutput . sprintf($format, $chapterLink, $chapterTitle, $chapterResultsSummaryText);
+					}
 				}
 			}
 		}
 		// output html
+		echo $finalOutput;
 	}
 
 	private function findPositionsOfAllOccurrencesOfString($haystack, $needle) {
