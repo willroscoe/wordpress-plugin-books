@@ -10,6 +10,7 @@ class ePubServer {
 	public $current_chapterId;
 	private $etag;
 	private $full_file_path;
+	public $searchterm;
 
 	public function __construct($file, $base_link, $asset_to_process, $searchterm = "") {
 
@@ -38,7 +39,7 @@ class ePubServer {
 			echo 'Cache files deleted: ' . $filecount;
 			die;
 		} elseif ($this->asset_to_process == 'search') {
-
+			$this->searchterm = $searchterm;
 		}
 	}
 
@@ -95,7 +96,7 @@ class ePubServer {
 			}
 		}*/
 
-		$match = findFileInEpubByFilename($this->asset_to_process);
+		$match = $this->findFileInEpubByFilename($this->asset_to_process);
 
 		// if we have a match, render the file
 		if ($match) {
@@ -638,7 +639,7 @@ class ePubServer {
 			}
 		}*/
 
-		$match = findFileInEpubByFilename($nameInUrl);
+		$match = $this->findFileInEpubByFilename($nameInUrl);
 
 		// if we have a match, return the $id
 		if ($match) {
@@ -687,9 +688,13 @@ class ePubServer {
 		}
 	}
 
-	public function displaySearchResults($searchText) {
+	public function displaySearchResults($searchText = "") {
+
+		if ($searchText == "")
+			$searchText = $this->searchterm;
+
 		$finalOutput = '';
-		$numberOfCharactersToShowBothSidesOfSearchTerm = 20;
+		$numberOfCharactersToShowBothSidesOfSearchTerm = 40;
 		// get chapters
 		$toc = $this->getTableOfContents();
 		// loop each chapter
@@ -709,18 +714,36 @@ class ePubServer {
 				/** @var \simple_html_dom $dom */
 				$dom = $parser->str_get_html($html);
 				if (is_object($dom)) {
-					$body = $dom->find('body');
-					$bodytext = $body->find('text');
+					$plaintext = $dom->find('body',0)->plaintext;
+					//foreach ($bodytext as $bodyElement) {
+						
+						//$plaintext = $bodyElement->plaintext; // get the plain text from the bodyElement
+						$numberofoccurrences = substr_count(strtolower($plaintext), strtolower($searchText));
+						if ($numberofoccurrences > 0) {
+							// find first 2 occurrences
+							$firstoccurrence = stripos($plaintext, $searchText);
+
+							if ($numberofoccurrences > 1) {
+								$secondoccurrence = stripos($plaintext, $searchText, $firstoccurrence + strlen($searchText));
+							}
+							$chapterResultsSummaryText = 'Number of occurrences: ' . $numberofoccurrences;
+						}
+					//}
+
+					//$bodytext = $body->find('text');
 					// search chapter text (striped of tags)
 
 					// loop each element
-					foreach ($bodytext as $key=>$bodyElement)
-					{
-						$plaintext = $bodyElement->plaintext; // get the plain text from the bodyElement
 
-						$occurrences = findPositionsOfAllOccurrencesOfString($plaintext, $searchText);
+					/*foreach ($bodytext as $key=>$bodyElement)
+					{
+						
+						
+
+						$occurrences = $this->findPositionsOfAllOccurrencesOfString($plaintext, $searchText);
 						if (isset($occurrences) && count($occurrences) > 0) { // search term found
 							// get some text either side of the search term
+
 							foreach ($occurrences as $occurrence) {
 								// find the position of the X number of spaces before the search term
 								$startpos = $occurrence - $numberOfCharactersToShowBothSidesOfSearchTerm;
@@ -728,7 +751,7 @@ class ePubServer {
 									$startpos = 0;
 								// find end of text to show
 								$endpos = ($numberOfCharactersToShowBothSidesOfSearchTerm * 2) + strlen($searchText);
-								$selectedText = ' ...' . substr($plaintext, $startpos, $endpos) . '... ';
+								$selectedText = '<p>' . substr($plaintext, $startpos, $endpos) . '</p>';
 								// add style to search term
 								$selectedText = str_replace(
 									$searchText,
@@ -738,31 +761,28 @@ class ePubServer {
 								$chapterResultsSummaryText = $chapterResultsSummaryText . $selectedText;
 							}
 						}
-						/*if (strpos($plaintext,$searchText) !== FALSE) // search term found
-						{
-							echo $key.": text=".$plaintext."<br />"
-								."--- parent tag=".$bodyElement->parent()->tag."<br />"
-								."--- parent id=".$bodyElement->parent()->id."<br />";
-						}*/
-					}
+						
+					}*/
 					
 					// build html output: title, summary text with search term highlighted; link to chapter with search term appended to url ?q={search term}
 					if (strlen($chapterResultsSummaryText) > 0) {
 						$format = '<article><h2><a href="%s">%s</a></h2><div>%s</div></article>';
 
 						$finalOutput = $finalOutput . sprintf($format, $chapterLink, $chapterTitle, $chapterResultsSummaryText);
+
+						
 					}
 				}
 			}
 		}
 		// output html
+		echo '<h1>Search Results for: \'' . $searchText . '\'</h1><p>Found in the following chapters</p>';
 		echo $finalOutput;
 	}
 
-	private function findPositionsOfAllOccurrencesOfString($haystack, $needle) {
+	public function findPositionsOfAllOccurrencesOfString($haystack, $needle) {
 		$lastPos = 0;
 		$positions = array();
-
 		while (($lastPos = strpos($haystack, $needle, $lastPos))!== false) {
 			$positions[] = $lastPos;
 			$lastPos = $lastPos + strlen($needle);

@@ -4,12 +4,12 @@
  */
 global $wp;
 require_once(dirname(__FILE__) . '/ePubServer.php');
-
-$basepath = "/books/" . get_query_var('mp_book') . "/read"; // path to be added to all the links in the epub book
+$basepath = "/books/" . get_query_var('mp_book');
+$basepath_read = $basepath . "/read"; // path to be added to all the links in the epub book
 $asset_to_process = get_query_var('read'); // get the url part after '/read/'
 $book_full_filesystem_path = get_book_full_filesystem_path();
 
-$epub = new ePubServer($book_full_filesystem_path, $basepath, $asset_to_process);
+$epub = new ePubServer($book_full_filesystem_path, $basepath_read, $asset_to_process);
 $epub->processRequest();
 
 $book_subtitle = get_book_subtitle();
@@ -39,6 +39,10 @@ get_header(); ?>
 		<?php get_book_links_block(); ?>
 
 	</section>
+    <section id="search-book-form" class="widget widget_search-book">
+        <h2 class="widget-title">Search in book</h2>
+        <form action="<?php echo $basepath . '/search' ?>" method="post"><input type="text" name="searchterm" /> <input type="submit" name="submit" value="submit" /></form>
+    </section>
     <section class="book-toc">
     <?php 
         $epub->displayTableOfContents();
