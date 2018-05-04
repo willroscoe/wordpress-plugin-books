@@ -9,8 +9,29 @@ $basepath_read = $basepath . "/read"; // path to be added to all the links in th
 $asset_to_process = get_query_var('search'); // get the url part after '/search/'
 $book_full_filesystem_path = get_book_full_filesystem_path();
 $searchterm = $_POST["searchterm"];
+// cleanse searchterm
+
+function cleanse_input($data) {
+    // TODO delete if less than 3 chars long
+    
+    $data = stripslashes($data);
+    $data = htmlspecialchars($data);
+    $data = trim($data);
+    $blacklist = array('a', 'and', 'at', 'be', 'but', 'by', 'of', 'i', 'in', 'me', 'my', 'no', 'not', 'on', 'the', 'to', 'too'); // get rid of time wasters
+    foreach ($blacklist as $blackitem) {
+        if ($data == $blackitem) {
+            $data = "";
+            break;
+        }
+    }
+    if (strlen($data) < 3) {
+        $data = "";
+    }
+
+    return $data;
+  }
+
 $epub = new ePubServer($book_full_filesystem_path, $basepath_read, 'search', $searchterm);
-//$epub->processRequest();
 
 $book_subtitle = get_book_subtitle();
 $book_authors = get_book_authors();
