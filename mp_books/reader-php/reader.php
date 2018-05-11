@@ -41,7 +41,7 @@ get_header(); ?>
 	</section>
     <section id="search-book-form" class="widget widget_search-book">
         <h2 class="widget-title">Search in book</h2>
-        <form action="<?php echo $basepath . '/search' ?>" method="post"><input type="text" name="searchterm" /> <input type="submit" name="submit" value="submit" /></form>
+        <form action="<?php echo $basepath . '/search' ?>" method="post"><input class="search-book-input" type="text" name="searchterm" placeholder="Search book" /> <input type="submit" name="submit" value="submit" class="search-book-submit" /></form>
     </section>
     <section class="book-toc">
     <?php 
