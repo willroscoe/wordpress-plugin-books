@@ -1213,12 +1213,18 @@ add_filter( 'nav_menu_css_class', 'book_active_item_classes', 10, 2 );
 
 function get_book_links_block()
 {
+    $showlinkblock = FALSE;
     $epub_file_url = get_epub_file_url();
     $downloadlinks = get_download_links();
     $buy_book_link = get_buy_book_link();
     $buy_book_hardback_link = get_buy_hardback_book_link();
     
-    echo "<ul class='link-block'>";
+    if ($epub_file_url != "" || $downloadlinks != "" || $buy_book_link != "" || $buy_book_hardback_link != "")
+        $showlinkblock = TRUE;
+
+    if ($showlinkblock) {
+        echo "<ul class='link-block'>";
+    }
     if ($epub_file_url != "") {
         echo '<li><span class="label">Read</span> <span class="links"><a href="' . esc_url( get_permalink() ) . '/read" class="colorbox donate" data-colorbox-href="#donate-popup" data-colorbox-inline="true">online</a></span></li>';
     }
@@ -1234,8 +1240,9 @@ function get_book_links_block()
     if ($buy_book_hardback_link != "") {
         echo '<li><span class="label">Buy</span> <span class="links"><a href="' . $buy_book_hardback_link . '">Hardback</a></span></li>';
     }
-
-	echo "</ul>";
+    if ($showlinkblock) {
+        echo "</ul>";
+    }
 }
 
 /**
