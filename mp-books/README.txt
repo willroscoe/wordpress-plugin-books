@@ -1,13 +1,13 @@
 === MP-Books ===
 Contributors: willroscoe
 Tags: mattering press, book, publisher, epub, pdf, mobi, open source
-Requires at least: 4.0
+Requires at least: 4.4
 Tested up to: 4.9.6
 Stable tag: 1.0
 License: The Unlicense
 License URI: http://unlicense.org/
 
-A 'book' plugin for the Mattering Press website: https://www.matteringpress.org
+A wordpress 'book' plugin.
 
 == Description ==
 
