@@ -1,0 +1,27 @@
+/**
+ * Admin-specific CSS
+ */
+
+ .mp-book-meta-box {
+    margin-bottom: 5px;
+ }
+
+ .mp-book-meta-box label {
+    vertical-align: top;
+    min-width: 115px;
+    text-align: right;
+    display: inline-block;
+    margin-right: 10px;
+ }
+
+ .mp-book-meta-box input {
+    vertical-align: middle;
+ }
+
+ .mp-book-meta-box textarea {
+    width: 400px;
+ }
+
+ .mp-book-attachments {
+    margin-bottom: 20px;
+ }
