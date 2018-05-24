@@ -1,6 +1,6 @@
-# Mapperting Press Wordpress 'book' plugin
+# Wordpress 'book' plugin
 
-A 'book' plugin for the Mattering Press website: https://www.matteringpress.org
+A 'book' plugin for wordpress
 
 ## Description
 
