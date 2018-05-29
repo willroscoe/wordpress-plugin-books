@@ -1,6 +1,8 @@
 <?php
 /***************************
-WARNING NOTE: This class has been updated for the wr_book wordpress plugin. Search for 'Will Roscoe' for changes
+* WARNING NOTE: This class has been updated for the wr_book wordpress plugin. Search for 'Will Roscoe' for changes
+*
+* Each book is cached in disk to allow for faster processing for future requests
 ****************************/
 
 //error_reporting(E_ALL | E_STRICT);

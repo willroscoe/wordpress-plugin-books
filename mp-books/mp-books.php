@@ -1,26 +1,25 @@
 <?php
 
 /**
- * The plugin bootstrap file
  *
  * This file is read by WordPress to generate the plugin information in the plugin
  * admin area. This file also includes all of the dependencies used by the plugin,
  * registers the activation and deactivation functions, and defines a function
  * that starts the plugin.
  *
- * @link              http://github.com/willroscoe
+ * @link              https://github.com/willroscoe/wordpress-plugin-books
  * @since             1.0.0
  * @package           MP_Books
  *
  * @wordpress-plugin
  * Plugin Name:       Mattering Press Books plugin
- * Plugin URI:        
- * Description:       This is a short description of what the plugin does. It's displayed in the WordPress admin area.
+ * Plugin URI:        https://github.com/willroscoe/wordpress-plugin-books
+ * Description:       Adds a 'book' custom post type and always displaying/rendering of epub books in a page. The epub processing/rendering part of this plugin is significantly based on an earlier version by Edward Akerboom (opensource@infostreams.net), who has kindly permitted his code to be adapted for this wordpress plugin.
  * Version:           1.0.0
- * Author:            Will Roscoe
- * Author URI:        http://github.com/willroscoe
- * License:           GPL-2.0+
- * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
+ * Authors:           Will Roscoe, Edward Akerboom (opensource@infostreams.net)
+ * Author URI:        https://github.com/willroscoe
+ * License:           The Unlicense
+ * License URI:       http://unlicense.org
  * Text Domain:       mp-books
  * Domain Path:       /languages
  */

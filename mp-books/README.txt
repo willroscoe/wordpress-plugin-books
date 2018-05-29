@@ -1,5 +1,5 @@
 === MP-Books ===
-Contributors: willroscoe
+Contributors: Will Roscoe, Edward Akerboom (opensource@infostreams.net)
 Tags: mattering press, book, publisher, epub, pdf, mobi, open source
 Requires at least: 4.4
 Tested up to: 4.9.6
@@ -12,6 +12,8 @@ A wordpress 'book' plugin.
 == Description ==
 
 This plugin adds a 'Books' custom post type with additional meta boxes, various related widgets, and allows reading of epub files directly on your site. 
+
+The epub processing/rendering part of this plugin is significantly based on an earlier version by Edward Akerboom (opensource@infostreams.net), who has kindly permitted his code to be adapted for this wordpress plugin.
 
 == Installation ==
 

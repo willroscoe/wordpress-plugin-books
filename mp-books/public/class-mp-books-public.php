@@ -79,51 +79,6 @@ class MP_Books_Public {
 		$this->book_file_type['mobi']['mimetype'] = 'application/x-mobipocket-ebook';
 	}
 
-	/**
-	 * Register the stylesheets for the public-facing side of the site.
-	 *
-	 * @since    1.0.0
-	 */
-	//public function enqueue_styles() {
-
-		/**
-		 * This function is provided for demonstration purposes only.
-		 *
-		 * An instance of this class should be passed to the run() function
-		 * defined in MP_Books_Loader as all of the hooks are defined
-		 * in that particular class.
-		 *
-		 * The MP_Books_Loader will then create the relationship
-		 * between the defined hooks and the functions defined in this
-		 * class.
-		 */
-
-		//wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/mp-books-public.css', array(), $this->version, 'all' );
-
-	//}
-
-	/**
-	 * Register the JavaScript for the public-facing side of the site.
-	 *
-	 * @since    1.0.0
-	 */
-	//public function enqueue_scripts() {
-
-		/**
-		 * This function is provided for demonstration purposes only.
-		 *
-		 * An instance of this class should be passed to the run() function
-		 * defined in MP_Books_Loader as all of the hooks are defined
-		 * in that particular class.
-		 *
-		 * The MP_Books_Loader will then create the relationship
-		 * between the defined hooks and the functions defined in this
-		 * class.
-		 */
-
-		//wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/mp-books-public.js', array( 'jquery' ), $this->version, false );
-
-	//}
 
 	/**
 	 * Add endpoints to navigate to /read or /search for books

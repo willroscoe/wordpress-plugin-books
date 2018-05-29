@@ -4,7 +4,11 @@ A 'book' plugin for wordpress
 
 ## Description
 
-This plugin adds a 'Books' custom post type with additional meta boxes, various related widgets, and allows reading of epub files directly on your site. 
+This plugin adds a 'Books' custom post type with additional meta boxes, various related widgets, and allows reading of epub files directly on your site.
+
+## Acknowledgements
+The epub processing/rendering part of this plugin is significantly based on an earlier version by Edward Akerboom (opensource@infostreams.net), who has kindly permitted his code to be adapted for this wordpress plugin.
+
 
 ## Installation
 

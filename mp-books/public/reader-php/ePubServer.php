@@ -1,4 +1,13 @@
 <?php
+/**
+ *
+ * This and associated classes are significantly based on an earlier version by Edward Akerboom (opensource@infostreams.net)
+ * who has kindly permitted his code to be adapted for this wordpress plugin.
+ *
+ * Note: 	Each epub chapter is cached to the OS /tmp folder to allow for faster processing for future requests.
+ * 			To clear the cache for a particular epub book goto the following url /books/{bookname}/cleacache
+ */
+
 require_once(dirname(__FILE__) . '/libs/BookGluttonEpub.php');
 require_once(dirname(__FILE__) . '/libs/HtmlDomParser.php');
 require_once(dirname(__FILE__) . '/libs/lessc.inc.php');
@@ -56,45 +65,6 @@ class ePubServer {
 				die;
 			}
 		}
-
-		/*$filelist = $this->getFilelist();
-
-		// first, we try to find a file matching the exact path
-		$match = null;
-		foreach ($filelist as $file) {
-			// test if the current file ENDS WITH the (full) filename of the asset
-
-			if (isset($file['name']) and strlen($this->asset_to_process) > 0) {
-				if (strpos(strrev($file['name']), strrev($this->asset_to_process))===0) {
-					$match = $file;
-				}
-			}
-		}
-
-		// if that doesn't work, try if we can at least find a file with the same filename
-		// (I don't understand some of the epub files out there...)
-		if (!$match) {
-			$best = array('matching'=>0, 'file'=>null);
-			$asset_parts = array_reverse(explode('/', $this->asset_to_process));
-			foreach ($filelist as $file) {
-				$file_parts = array_reverse(explode('/', $file['name']));
-				$m = 0;
-				for ($i=0; $i<min(count($file_parts), count($asset_parts)); $i++) {
-					if ($file_parts[$i]==$asset_parts[$i]) {
-						$m++;
-					} else {
-						break;
-					}
-				}
-				if ($m>$best['matching']) {
-					$best['matching'] = $m;
-					$best['file'] = $file;
-				}
-			}
-			if ($best['matching']>0) {
-				$match = $best['file'];
-			}
-		}*/
 
 		$match = $this->findFileInEpubByFilename($this->asset_to_process);
 
@@ -228,7 +198,10 @@ class ePubServer {
 		echo $loadedcss;
 	}
 
-
+	/*
+	* This function is probably not called any more as the css file link in the html is injected into the html content by the 
+	*
+	*/
 	private function loadCssFile($file) {
 		$full_path = $file['name'];
 		$orig_css = explode("\n", $this->getFile($full_path));
@@ -448,7 +421,6 @@ class ePubServer {
 				$html = '';
 				$cssstyles = '';
 				// find all css links and inject the file text in the $html variable - this should stop the screen from flickering when loading the styles for the chapter/book 
-				
 				// load css - begin
 				$filelist = $this->getFilelist();
 				foreach($links as $link_element) {
@@ -483,7 +455,6 @@ class ePubServer {
 			}
 
 			// wrap everything in a '.epub' class so we can manipulate the CSS to only apply to this DIV
-			//$html = "<div class='epub'>$html</div>";
 			$html = '<html><head><base href="' . $this->base_link . '/" target="_self">' . $cssstyles . '</head><body><div class="epub">'. $html . '</div></body></html>'; // need to include <base> as wp adds a trailing '/' to all requests which brakes the relative links in the epub html
 
 			// try to force 'correct' HTML, closes dangling tags that might mess up the rest of the page
@@ -492,13 +463,6 @@ class ePubServer {
 			$doc->loadHTML($html); // html content
 			libxml_use_internal_errors(false);
 			$doc->normalizeDocument();
-
-			// encode all '#' in a href links as wp added a trailing slash before '#'
-			/*$xpath = new DOMXpath($doc);
-			foreach ($xpath->query('//a[@href]') as $a) {
-				$href = $a->getAttribute('href');
-				$a->setAttribute('href', urlencode($href));
-			}*/
 
 			$html = utf8_decode($doc->saveHTML($doc->documentElement));
 
@@ -603,42 +567,6 @@ class ePubServer {
 
 	function findChapterIdByNameInUrl($nameInUrl = "")
 	{
-		/*$filelist = $this->getFilelist();
-
-		// first, we try to find a file matching the exact path
-		$match = null;
-		foreach ($filelist as $file) {
-			// test if the current file ENDS WITH the (full) filename of the asset
-			if (strpos(strrev($file['name']), strrev($nameInUrl))===0) {
-				$match = $file;
-			}
-		}
-
-		// if that doesn't work, try if we can at least find a file with the same filename
-		// (I don't understand some of the epub files out there...)
-		if (!$match) {
-			$best = array('matching'=>0, 'file'=>null);
-			$nameInUrl_parts = array_reverse(explode('/', $nameInUrl));
-			foreach ($filelist as $file) {
-				$file_parts = array_reverse(explode('/', $file['name']));
-				$m = 0;
-				for ($i=0; $i<min(count($file_parts), count($nameInUrl_parts)); $i++) {
-					if ($file_parts[$i]==$nameInUrl_parts[$i]) {
-						$m++;
-					} else {
-						break;
-					}
-				}
-				if ($m>$best['matching']) {
-					$best['matching'] = $m;
-					$best['file'] = $file;
-				}
-			}
-			if ($best['matching']>0) {
-				$match = $best['file'];
-			}
-		}*/
-
 		$match = $this->findFileInEpubByFilename($nameInUrl);
 
 		// if we have a match, return the $id
@@ -716,56 +644,19 @@ class ePubServer {
 				$dom = $parser->str_get_html($html);
 				if (is_object($dom)) {
 					$plaintext = $dom->find('body',0)->plaintext;
-					//foreach ($bodytext as $bodyElement) {
-						
-						//$plaintext = $bodyElement->plaintext; // get the plain text from the bodyElement
-						$numberofoccurrences = substr_count(strtolower($plaintext), strtolower($searchText));
-						$totalnumberofoccurrences = $totalnumberofoccurrences + $numberofoccurrences;
-						if ($numberofoccurrences > 0) {
-							// find first 2 occurrences
-							$firstoccurrence = stripos($plaintext, $searchText);
 
-							if ($numberofoccurrences > 1) {
-								$secondoccurrence = stripos($plaintext, $searchText, $firstoccurrence + strlen($searchText));
-							}
-							$chapterResultsSummaryText = 'Number of occurrences: ' . $numberofoccurrences;
+					$numberofoccurrences = substr_count(strtolower($plaintext), strtolower($searchText));
+					$totalnumberofoccurrences = $totalnumberofoccurrences + $numberofoccurrences;
+					if ($numberofoccurrences > 0) {
+						// find first 2 occurrences
+						$firstoccurrence = stripos($plaintext, $searchText);
+
+						if ($numberofoccurrences > 1) {
+							$secondoccurrence = stripos($plaintext, $searchText, $firstoccurrence + strlen($searchText));
 						}
-					//}
+						$chapterResultsSummaryText = 'Number of occurrences: ' . $numberofoccurrences;
+					}
 
-					//$bodytext = $body->find('text');
-					// search chapter text (striped of tags)
-
-					// loop each element
-
-					/*foreach ($bodytext as $key=>$bodyElement)
-					{
-						
-						
-
-						$occurrences = $this->findPositionsOfAllOccurrencesOfString($plaintext, $searchText);
-						if (isset($occurrences) && count($occurrences) > 0) { // search term found
-							// get some text either side of the search term
-
-							foreach ($occurrences as $occurrence) {
-								// find the position of the X number of spaces before the search term
-								$startpos = $occurrence - $numberOfCharactersToShowBothSidesOfSearchTerm;
-								if ($startpos < 0)
-									$startpos = 0;
-								// find end of text to show
-								$endpos = ($numberOfCharactersToShowBothSidesOfSearchTerm * 2) + strlen($searchText);
-								$selectedText = '<p>' . substr($plaintext, $startpos, $endpos) . '</p>';
-								// add style to search term
-								$selectedText = str_replace(
-									$searchText,
-									"<span class='selected'>" . $searchText . "</span>",
-									$selectedText);
-								
-								$chapterResultsSummaryText = $chapterResultsSummaryText . $selectedText;
-							}
-						}
-						
-					}*/
-					
 					// build html output: title, summary text with search term highlighted; link to chapter with search term appended to url ?q={search term}
 					if (strlen($chapterResultsSummaryText) > 0) {
 						$format = '<article><h2><a href="%s">%s</a></h2><div>%s</div></article>';
