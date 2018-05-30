@@ -1,13 +1,13 @@
 # Wordpress 'book' plugin
 
 ## MP-Books
-Contributors: Will Roscoe, Edward Akerboom (opensource@infostreams.net)
-Tags: mattering press, book, publisher, epub, pdf, mobi, open source
-Requires at least: 4.4
-Tested up to: 4.9.6
-Stable tag: 1.0
-License: MIT
-License URI: http://www.opensource.org/licenses/mit-license.php
+* Contributors: Will Roscoe, Edward Akerboom (opensource@infostreams.net)
+* Tags: mattering press, book, publisher, epub, pdf, mobi, open source
+* Requires at least: 4.4
+* Tested up to: 4.9.6
+* Stable tag: 1.0
+* License: MIT
+* License URI: http://www.opensource.org/licenses/mit-license.php
 
 
 ## Description
