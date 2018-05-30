@@ -18,8 +18,8 @@
  * Version:           1.0.0
  * Authors:           Will Roscoe, Edward Akerboom (opensource@infostreams.net)
  * Author URI:        https://github.com/willroscoe
- * License:           The Unlicense
- * License URI:       http://unlicense.org
+ * License:           MIT
+ * License URI:       http://www.opensource.org/licenses/mit-license.php
  * Text Domain:       mp-books
  * Domain Path:       /languages
  */

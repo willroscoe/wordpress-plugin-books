@@ -1,4 +1,14 @@
 <?php
+/*
+BookGluttonEpub
+
+Copyright (c) 2011, Aaron Miller
+Licensed under the MIT license.
+
+https://github.com/Vaporbook/BookGluttonEpub
+
+*/
+
 /***************************
 * WARNING NOTE: This class has been updated for the wr_book wordpress plugin. Search for 'Will Roscoe' for changes
 *
