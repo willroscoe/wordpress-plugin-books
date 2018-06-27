@@ -17,11 +17,13 @@ if ($book_full_filesystem_path == "") {
     echo "Sorry. I can't find that book to search in.";
 }
 
-$searchterm = cleanse_input($_POST["searchterm"]); // get and cleanse searchterm
+//$searchterm = cleanse_input($_POST["searchterm"]); // get and cleanse searchterm
+
+$searchterm = apply_filters( 'mp_book_cleanse_search_terms', $_POST["searchterm"]); // get and cleanse searchterm
 
 $epub = new ePubServer($book_full_filesystem_path, $basepath_read, 'search', $searchterm);
 
-function cleanse_input($data) {
+/*function cleanse_input($data) {
     if (strlen($data) < 3)
         return "";
     
@@ -37,7 +39,7 @@ function cleanse_input($data) {
         return "";  
 
     return $data;
-  }
+  }*/
 
 // get the theme header
 get_header(); 
@@ -51,7 +53,7 @@ get_header();
                 $epub->displaySearchResults();
             } else {
                 ?>
-                <p></p>
+                <p>No results.</p>
                 <?php
             }  
 		?>

@@ -176,8 +176,11 @@ class MP_Books_Public {
 						echo '<link rel="alternate" type="' . $this->book_file_type[$this->book_file_types[$x]]['mimetype'] . '" href="' . $thisurl . '">', PHP_EOL;
 					}
 				}
-	
-				wp_enqueue_script( 'hypothesis', 'https://hypothes.is/embed.js', array(), false, true );
+				
+				echo '<link rel="dns-prefetch" href="//hypothes.is" />', PHP_EOL;
+				echo '<script type="text/javascript" src="https://hypothes.is/embed.js"></script>', PHP_EOL;
+
+				//wp_enqueue_script( 'hypothesis', 'https://hypothes.is/embed.js', array(), false, true );
 			}
 		}
 	}
@@ -487,4 +490,28 @@ class MP_Books_Public {
 		}
 		return $book_full_filesystem_path;
 	}
+
+	/**
+	 * Cleanse user inputed search terms for security and efficiency
+	 * 
+	 * 
+	 */
+	public function cleanse_search_terms($data) {
+		if (strlen($data) < 3)
+			return "";
+		
+		$data = strip_tags($data);
+		$data = stripslashes($data);
+		$data = htmlspecialchars($data);
+		$data = trim($data);
+	
+		if (strlen($data) < 3)
+			return "";
+	
+		$blacklist = array('the', 'and', 'for', 'you', 'say', 'but', 'his', 'not', 'she', 'can', 'who', 'get', 'her', 'all', 'one', 'out', 'see', 'him', 'now', 'how', 'its', 'our', 'two', 'way', 'new'); // get rid of time wasters
+		if (in_array($data, $blacklist))
+			return "";  
+	
+		return $data;
+	  }
 }

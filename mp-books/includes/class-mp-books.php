@@ -203,6 +203,7 @@ class MP_Books {
 		$this->loader->add_action( 'mp_books_get_book_meta_info', $plugin_public, 'get_book_meta_info');
 		$this->loader->add_filter( 'mp_book_check_can_read_online', $plugin_public, 'check_can_read_online');
 		$this->loader->add_filter( 'mp_book_get_book_full_filesystem_path', $plugin_public, 'get_book_full_filesystem_path');
+		$this->loader->add_filter( 'mp_book_cleanse_search_terms', $plugin_public, 'cleanse_search_terms', 10, 1);
 		
 	}
 
