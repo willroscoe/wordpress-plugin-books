@@ -72,7 +72,8 @@ get_header(); ?>
         if (window.location.hash) {
             $(window).trigger('hashchange');
         }
-        if ($(".epub span.selected")) {
+
+        if ($(".epub span.selected").length) {
             $('html, body').animate({
                 scrollTop: $(".epub span.selected").offset().top
             }, 1000);
