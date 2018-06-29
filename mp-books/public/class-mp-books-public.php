@@ -464,7 +464,7 @@ class MP_Books_Public {
 				if ($downloadlinks != "") {
 					$downloadlinks .= ", ";
 				}
-				$downloadlinks .= sprintf("<a href='%s'>" . $this->book_file_type[$this->book_file_types[$x]]['title'] . "</a>", $this->book_file[$bookid][$this->book_file_types[$x]]['url']);
+				$downloadlinks .= sprintf("<a href='%s' target='_blank'>" . $this->book_file_type[$this->book_file_types[$x]]['title'] . "</a>", $this->book_file[$bookid][$this->book_file_types[$x]]['url']);
 			}
 		}
 

@@ -85,9 +85,9 @@ get_header(); ?>
     .epub span.selected { display: inline; padding:10px 20px; margin:0px; line-height:2; }
 </style>
 
-<!-- Track event -->
+<!-- Track event
 <script type="text/javascript">
 _paq.push(['trackEvent', 'Read Online', '<?php echo $basepath_read . '/' . $asset_to_process ?>']);
-</script>
+</script> -->
 
 <?php get_footer(); ?>
