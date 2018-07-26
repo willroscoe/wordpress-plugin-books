@@ -40,6 +40,7 @@ class mp_book_titles_widget extends WP_Widget {
         $checkbox_showimage = ! empty( $instance['checkbox_showimage'] ) ? $instance['checkbox_showimage'] : false;
         $checkbox_hideauthors = ! empty( $instance['checkbox_hideauthors'] ) ? $instance['checkbox_hideauthors'] : false;
         $checkbox_hidetitle = ! empty( $instance['checkbox_hidetitle'] ) ? $instance['checkbox_hidetitle'] : false;
+        $checkbox_showsubtitle = ! empty( $instance['checkbox_showsubtitle'] ) ? $instance['checkbox_showsubtitle'] : false;
 
         // WordPress core before_widget hook (always include )
         echo $before_widget;
@@ -56,10 +57,14 @@ class mp_book_titles_widget extends WP_Widget {
         $thebooks = get_posts( $args );
         echo __( '<div class="widget-books">', 'mp_book_titles_widget_domain' );
         foreach ( $thebooks as $post ) : setup_postdata( $post );
-            $book_authors = get_post_meta(get_the_ID(), "book_authors", true); ?>
+            $book_authors = get_post_meta(get_the_ID(), "book_authors", true);
+            $book_subtitle = get_post_meta(get_the_ID(), "book_subtitle", true); ?>
                 <div class="widget-book">
                     <?php if (!$checkbox_hidetitle) { ?>
                         <div class="widget-book-title"><a href="<?php echo the_permalink(); ?>"><?php echo the_title(); ?></a></div>
+                    <?php } ?>
+                    <?php if ($checkbox_showsubtitle && strlen($book_subtitle) > 0) { ?>
+                        <div class="widget-book-subtitle"><?php echo $book_subtitle; ?></div>
                     <?php } ?>
                     <?php if (!$checkbox_hideauthors) { ?>
                         <div class="widget-book-authors"><?php echo $book_authors; ?></div>
@@ -85,6 +90,7 @@ class mp_book_titles_widget extends WP_Widget {
             'checkbox_showimage' => '',
             'checkbox_hideauthors' => '',
             'checkbox_hidetitle' => '',
+            'checkbox_showsubtitle' => '',
             'select_orderby' => 'date',
             'select_order' => 'DESC',
         );
@@ -109,7 +115,11 @@ class mp_book_titles_widget extends WP_Widget {
                 <input id="<?php echo esc_attr( $this->get_field_id( 'checkbox_hideauthors' ) ); ?>" name="<?php echo esc_attr( $this->get_field_name( 'checkbox_hideauthors' ) ); ?>" type="checkbox" value="1" <?php checked( '1', $checkbox_hideauthors ); ?> />
                 <label for="<?php echo esc_attr( $this->get_field_id( 'checkbox_hideauthors' ) ); ?>"><?php _e( 'Hide Authors', 'text_domain' ); ?></label>
             </p>
-
+            <?php // Checkbox - show subtitle ?>
+            <p>
+                <input id="<?php echo esc_attr( $this->get_field_id( 'checkbox_showsubtitle' ) ); ?>" name="<?php echo esc_attr( $this->get_field_name( 'checkbox_showsubtitle' ) ); ?>" type="checkbox" value="1" <?php checked( '1', $checkbox_showsubtitle ); ?> />
+                <label for="<?php echo esc_attr( $this->get_field_id( 'checkbox_showsubtitle' ) ); ?>"><?php _e( 'Show subtitle', 'text_domain' ); ?></label>
+            </p>
             <?php // Checkbox - show cover thumbnail ?>
             <p>
                 <input id="<?php echo esc_attr( $this->get_field_id( 'checkbox_showimage' ) ); ?>" name="<?php echo esc_attr( $this->get_field_name( 'checkbox_showimage' ) ); ?>" type="checkbox" value="1" <?php checked( '1', $checkbox_showimage ); ?> />
@@ -163,6 +173,7 @@ class mp_book_titles_widget extends WP_Widget {
         $instance['checkbox_showimage'] = isset( $new_instance['checkbox_showimage'] ) ? 1 : false;
         $instance['checkbox_hideauthors'] = isset( $new_instance['checkbox_hideauthors'] ) ? 1 : false;
         $instance['checkbox_hidetitle'] = isset( $new_instance['checkbox_hidetitle'] ) ? 1 : false;
+        $instance['checkbox_showsubtitle'] = isset( $new_instance['checkbox_showsubtitle'] ) ? 1 : false;
         $instance['select_orderby'] = isset( $new_instance['select_orderby'] ) ? wp_strip_all_tags( $new_instance['select_orderby'] ) : '';
         $instance['select_order'] = isset( $new_instance['select_order'] ) ? wp_strip_all_tags( $new_instance['select_order'] ) : '';
         return $instance;
