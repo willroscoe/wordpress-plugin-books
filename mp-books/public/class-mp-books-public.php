@@ -46,6 +46,8 @@ class MP_Books_Public {
 	private $book_file_type = array();
 	private $book_file = array();
 
+	private $current_book = array();
+
 	/**
 	 * Initialize the class and set its properties.
 	 *
@@ -111,7 +113,6 @@ class MP_Books_Public {
 				if ($epub_file_attachment != "" and $enable_readonline == TRUE) // book file exisits
 				{
 					if (preg_match('"/books/[^/]+/fullread/?"', $thepath)) { // show book using the 'ed' php version
-						//return dirname( __FILE__ ) . '/reader-js/reader.php';
 						return plugin_dir_path( dirname( __FILE__ ) ) . 'public/reader-js/reader.php';
 					}
 					else
@@ -144,28 +145,41 @@ class MP_Books_Public {
 			$thepath = parse_url($current_url, PHP_URL_PATH);
 	
 			$this->refresh_book_file_details();
+			$this->refresh_book_details();
 	
-			if (preg_match('"/books/[^/]+/([full]*read$|[full]*read/.*)"', $thepath)) // on book 'read online' page - either 'read' or 'fullread'
+			//if (preg_match('"/books/[^/]+/([full]*read$|[full]*read/.*)"', $thepath)) // on book 'read online' page - either 'read' or 'fullread'
+			//if (preg_match('"/books/[^/]+(/$|$)"', $thepath)) // /book/{name_of_book} page
+			if (preg_match('"/books/.+"', $thepath)) // /book/{name_of_book} page
 			{
-	
-				echo '<meta property="og:title" content="' . get_the_title() . '" />', PHP_EOL;
-				echo '<meta property="og:url" content="' . $current_url . '" />', PHP_EOL;
-				//echo '<meta property="og:image" content="' .  . '" />', PHP_EOL; // thumbnail
-				echo '<meta property="og:type" content="book" />', PHP_EOL;
-				//echo '<meta property="book:isbn" content="' .  . '" />';
-				echo '<meta property="book:release_date" content="' . the_date() . '" />', PHP_EOL;
-				//echo '<meta property="book:tag" content="" />';
-	
-				echo '<meta name="citation_title" content="' . get_the_title() . '">', PHP_EOL;
-	
 				$authors = $this->get_array_of_book_authors();
+
+				$booktitle_full = get_the_title();
+				if (!empty($this->current_book['book_subtitle']))
+				{
+					$booktitle_full .= ": " . $this->current_book['book_subtitle'];
+				}
+
+				echo '<meta property="og:site_name" content="Mattering Press" />', PHP_EOL;
+				echo '<meta property="og:title" content="' . $booktitle_full . '" />', PHP_EOL;
+				echo '<meta property="og:url" content="' . wp_get_canonical_url( $bookid ) . '" />', PHP_EOL;
+				echo '<meta property="og:locale" content="en_GB" />', PHP_EOL;
+				echo '<meta property="og:image" content="' . get_the_post_thumbnail_url(get_the_ID()) . '" />', PHP_EOL; // thumbnail
+				echo '<meta property="og:type" content="book" />', PHP_EOL;
+				echo '<meta property="book:isbn" content="' . $this->current_book['book_isbn'] . '" />', PHP_EOL;
+				echo '<meta property="citation_isbn" content="' . $this->current_book['book_isbn'] . '" />', PHP_EOL;
+				echo '<meta property="book:release_date" content="' . $this->current_book['book_publicationdate'] . '" />', PHP_EOL;
+				echo '<meta name="citation_title" content="' . $booktitle_full . '">', PHP_EOL;
+				echo '<meta name="citation_doi" content="' . $this->current_book['book_doi'] . '">', PHP_EOL;
+				echo '<meta name="citation_publisher" content="Mattering Press">', PHP_EOL;
+				echo '<meta name="citation_language" content="en">', PHP_EOL;
 	
 				for($x = 0; $x < count($authors); $x++) {
 					echo '<meta name="citation_author" content="' . $authors[$x] . '">', PHP_EOL;
 					echo '<meta property="book:author" content="' . $authors[$x] . '" />', PHP_EOL;
 				}
 	
-				echo '<meta name="citation_publication_date" content="' . the_date() . '">', PHP_EOL; // YYYY/MM/DD
+				echo '<meta name="citation_publication_date" content="' . $this->current_book['book_publicationdate'] . '">', PHP_EOL; // YYYY/MM/DD
+				echo '<meta name="citation_date" content="' . $this->current_book['book_publicationdate'] . '">', PHP_EOL; // YYYY/MM/DD
 				if (isset($this->book_file[$bookid]['pdf']['url'])) {
 					echo '<meta name="citation_pdf_url" content="' . $this->book_file[$bookid]['pdf']['url'] . '">', PHP_EOL;
 				}
@@ -176,11 +190,14 @@ class MP_Books_Public {
 						echo '<link rel="alternate" type="' . $this->book_file_type[$this->book_file_types[$x]]['mimetype'] . '" href="' . $thisurl . '">', PHP_EOL;
 					}
 				}
-				
-				echo '<link rel="dns-prefetch" href="//hypothes.is" />', PHP_EOL;
-				echo '<script type="text/javascript" src="https://hypothes.is/embed.js"></script>', PHP_EOL;
 
-				//wp_enqueue_script( 'hypothesis', 'https://hypothes.is/embed.js', array(), false, true );
+				// FOR READ ONLINE PAGES ONLY
+				if (preg_match('"/books/[^/]+/([full]*read$|[full]*read/.*)"', $thepath)) // on book 'read online' page - either 'read' or 'fullread'
+				{
+					echo '<link rel="dns-prefetch" href="//hypothes.is" />', PHP_EOL;
+					echo '<script type="text/javascript" src="https://hypothes.is/embed.js" async></script>', PHP_EOL;
+					//wp_enqueue_script( 'hypothesis', 'https://hypothes.is/embed.js', array(), false, true );
+				}
 			}
 		}
 	}
@@ -243,32 +260,50 @@ class MP_Books_Public {
 	 */
 	public function get_book_links_block()
 	{
+		$this->refresh_book_details();
+
 		$showlinkblock = FALSE;
 		$epub_file_url = $this->get_epub_file_url();
 		$downloadlinks = $this->get_download_links();
 		$buy_book_link = $this->get_buy_book_link();
 		$buy_book_hardback_link = $this->get_buy_hardback_book_link();
+
+		$book_publicationdate = $this->current_book['book_publicationdate'];
+		$book_isbn = $this->current_book['book_isbn'];
+		$book_doi = $this->current_book['book_doi'];
 		
-		if ($epub_file_url != "" || $downloadlinks != "" || $buy_book_link != "" || $buy_book_hardback_link != "")
+		if (!empty($epub_file_url) || !empty($downloadlinks) || !empty($buy_book_link) || !empty($buy_book_hardback_link) || !empty($book_publicationdate) || !empty($book_isbn) || !empty($book_doi))
 			$showlinkblock = TRUE;
 
 		if ($showlinkblock) {
 			echo "<ul class='link-block'>";
 		}
-		if ($epub_file_url != "") {
+		if (!empty($epub_file_url)) {
 			echo '<li><span class="label">Read</span> <span class="links"><a href="' . esc_url( get_permalink() ) . '/read" class="colorbox donate" data-colorbox-href="#donate-popup" data-colorbox-inline="true">online</a></span></li>';
 		}
 
-		if ($downloadlinks != "") {
+		if (!empty($downloadlinks)) {
 			echo '<li><span class="label">Download</span> <span class="links">' . $downloadlinks . '</span></li>';
 		}
 
-		if ($buy_book_link != "") {
+		if (!empty($buy_book_link)) {
 			echo '<li><span class="label">Buy</span> <span class="links"><a href="' . $buy_book_link . '">Paperback</a></span></li>';
 		}
 
-		if ($buy_book_hardback_link != "") {
+		if (!empty($buy_book_hardback_link)) {
 			echo '<li><span class="label">Buy</span> <span class="links"><a href="' . $buy_book_hardback_link . '">Hardback</a></span></li>';
+		}
+
+		if (!empty($book_publicationdate)) {
+			echo '<li class="li_separator">&nbsp;</li><li class="book_publicationdate"><span class="label">Publication date: </span> <span class="links">' . $book_publicationdate . '</span></li>';
+		}
+
+		if (!empty($book_isbn)) {
+			echo '<li class="book_isbn"><span class="label">ISBN: </span> <span class="links">' . $book_isbn . '</span></li>';
+		}
+
+		if (!empty($book_doi)) {
+			echo '<li class="book_doi"><span class="label">DOI: </span> <span class="links"><a href="' . $book_doi . '" target="_blank">' . $book_doi . '</a></span></li>';
 		}
 		if ($showlinkblock) {
 			echo "</ul>";
@@ -302,6 +337,9 @@ class MP_Books_Public {
 	 */
 
 	public function get_book_meta_info() {
+		
+		$this->refresh_book_details();
+		
 		$book_subtitle = $this->get_book_subtitle();
 		$book_authors = $this->get_book_authors();
 
@@ -315,24 +353,19 @@ class MP_Books_Public {
 	// sub-title
 	public function get_book_subtitle()
 	{
-		return get_post_meta(get_the_ID(), "book_subtitle", true);
+		return $this->current_book['book_subtitle'];
 	}
 
 	// authors
 	public function get_book_authors($inc_pre_authors = TRUE, $class_for_prefix = "before-authors")
 	{
-		$this->refresh_book_authors();
-
 		$result = "";
-		$bookid = get_the_ID(); // book id
 
-		$result = $this->book_file[$bookid]['authors'];
+		$result = $this->current_book['book_authors'];
 
 		if ($inc_pre_authors) { // add any 'pre author' code
-			if (isset($this->book_file[$bookid]['preauthors'])) {
-				if ($this->book_file[$bookid]['preauthors'] != "") {
-					$result = '<span class="' . $class_for_prefix . '">'. $this->book_file[$bookid]['preauthors'] . '</span> ' . $result;
-				}
+			if (!empty($this->current_book['book_pre_authors'])) {
+				$result = '<span class="' . $class_for_prefix . '">'. $this->current_book['book_pre_authors'] . '</span> ' . $result;
 			}
 		}
 
@@ -341,12 +374,9 @@ class MP_Books_Public {
 
 	public function get_array_of_book_authors()
 	{
-		$this->refresh_book_authors();
-
 		$result = array();
 		$trimmedresult = array();
-		$bookid = get_the_ID(); // book id
-		$authors = $this->book_file[$bookid]['authors'];
+		$authors = $this->current_book['book_authors'];
 		if (strlen($authors) > 0) {
 			if (strpos($authors, '|') !== FALSE) {
 				$result = explode('|', $authors);
@@ -360,29 +390,43 @@ class MP_Books_Public {
 		return $trimmedresult;
 	}
 
-	public function refresh_book_authors()
+	public function refresh_book_details()
 	{
 		$bookid = get_the_ID(); // book id
 		$need_to_refresh = TRUE;
-		if (isset($this->book_file[$bookid]['authors'])) { 
-			if ($this->book_file[$bookid]['authors'] != "") {
-				$need_to_refresh = FALSE;
-			}
+		if (!empty($this->book_file[$bookid]['book_authors'])) { 
+			$need_to_refresh = FALSE;
 		}
 		if ($need_to_refresh) {
-			$authors = get_post_meta(get_the_ID(), "book_authors", true);
-			$this->book_file[$bookid]['authors'] = $authors;
-			$pre_authors = get_post_meta(get_the_ID(), "book_pre_authors", true);
-			$this->book_file[$bookid]['preauthors'] = $pre_authors;
+			$this->add_book_detail_to_cache_array($bookid, "book_subtitle", "book_subtitle");
+			$this->add_book_detail_to_cache_array($bookid, "book_authors", "book_authors");
+			$this->add_book_detail_to_cache_array($bookid, "book_pre_authors", "book_pre_authors");
+			$this->add_book_detail_to_cache_array($bookid, "book_publicationdate", "book_publicationdate");
+			$this->add_book_detail_to_cache_array($bookid, "book_isbn", "book_isbn");
+			$this->add_book_detail_to_cache_array($bookid, "book_doi", "book_doi");
+
+			$this->add_book_detail_to_cache_array($bookid, "buy_book_link", "buy_book_link");
+			$this->add_book_detail_to_cache_array($bookid, "buy_book_hardback_link", "buy_book_hardback_link");
+			
+			$this->add_book_detail_to_cache_array($bookid, "enable_readonline", "enable_readonline");
+			$this->add_book_detail_to_cache_array($bookid, "epub_file_attachment", "epub_file_attachment");
 		}
+
+		$this->current_book = $this->book_file[$bookid]; // set the current_book variable
+	}
+
+	public function add_book_detail_to_cache_array($bookid, $post_meta_name, $array_item_key)
+	{
+		$result = get_post_meta(get_the_ID(), $post_meta_name, true);
+		$this->book_file[$bookid][$array_item_key] = $result;
 	}
 
 	// read online
 	public function check_can_read_online() {
-		$epub_file_url = "";
-		$enable_readonline = get_post_meta( get_the_ID(), 'enable_readonline', true );
-		$epub_file_attachment = get_post_meta( get_the_ID(), 'epub_file_attachment', true );
-		if ($epub_file_attachment != "" and $enable_readonline == TRUE)
+
+		$this->refresh_book_details();
+
+		if (!empty($this->get_epub_file_url()))
 		{
 			return TRUE;
 		}
@@ -391,9 +435,11 @@ class MP_Books_Public {
 
 	public function get_epub_file_url()
 	{
+		//$this->refresh_book_details();
+
 		$epub_file_url = "";
-		$enable_readonline = get_post_meta( get_the_ID(), 'enable_readonline', true );
-		$epub_file_attachment = get_post_meta( get_the_ID(), 'epub_file_attachment', true );
+		$enable_readonline = $this->current_book['enable_readonline'];
+		$epub_file_attachment = $this->current_book['epub_file_attachment'];
 		if ($epub_file_attachment != "" and $enable_readonline == TRUE)
 		{
 			$epub_file_url = $epub_file_attachment['url'];
@@ -403,12 +449,12 @@ class MP_Books_Public {
 
 	public function get_buy_book_link()
 	{
-		return get_post_meta( get_the_ID(), 'buy_book_link', true );
+		return $this->current_book['buy_book_link'];
 	}
 
 	public function get_buy_hardback_book_link()
 	{
-		return get_post_meta( get_the_ID(), 'buy_book_hardback_link', true );
+		return $this->current_book['buy_book_hardback_link'];
 	}
 
 	/**

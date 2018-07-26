@@ -100,6 +100,7 @@ class Custom_Post_Type_MP_Book {
 	{
 		add_meta_box("book_subtitle", "Sub-title", [$this, 'book_subtitle_meta_box_markup'], $this->custom_post_type, "normal", "high", null);
 		add_meta_box("book_authors", "Author(s)", [$this, 'book_authors_meta_box_markup'], $this->custom_post_type, "normal", "high", null);
+		add_meta_box("book_otherdetails", "Other details", [$this, 'book_otherdetails_meta_box_markup'], $this->custom_post_type, "normal", "high", null);
 		add_meta_box("buy_book_link", "Buy Online links", [$this, 'buy_book_link_meta_box_markup'], $this->custom_post_type, "normal", "high", null);
 		add_meta_box("enable_readonline", "Enable Read Online", [$this, 'enable_readonline_meta_box_markup'], $this->custom_post_type, "normal", "high", null);
 		add_meta_box("attach_book_files", "Upload Book files", [$this, 'attach_book_files_markup'], $this->custom_post_type, "normal", "high", null);
@@ -138,8 +139,30 @@ class Custom_Post_Type_MP_Book {
 		<?php
 	}
 
+	/**
+	* Book Other Details
+	*/
+	public function book_otherdetails_meta_box_markup($object)
+	{
+		wp_nonce_field(basename(__FILE__), "book_otherdetails_nonce");
+		?>
+			<div class="mp-book-meta-box">
+				<label for="book_publicationdate">Publication date<br />(yyyy-mm-dd)</label>
+				<input type="text" name="book_publicationdate" value="<?php echo get_post_meta($object->ID, "book_publicationdate", true); ?>">
+			</div>
+			<div class="mp-book-meta-box">
+				<label for="book_isbn">ISBN</label>
+				<input type="text" name="book_isbn" value="<?php echo get_post_meta($object->ID, "book_isbn", true); ?>">
+			</div>
+			<div class="mp-book-meta-box">
+				<label for="book_doi">DOI</label>
+				<input type="text" name="book_doi" value="<?php echo get_post_meta($object->ID, "book_doi", true); ?>">
+			</div>
+		<?php
+	}
+
 	/*****************************
-	Buy online link i.e. to Amazon
+	Buy online link
 	*/
 	public function buy_book_link_meta_box_markup($object)
 	{
@@ -151,10 +174,6 @@ class Custom_Post_Type_MP_Book {
 			</div>
 			<div class="mp-book-meta-box">
 				<label for="buy_book_hardback_link">Buy Hardback link</label>
-				<input type="text" name="buy_book_hardback_link" value="<?php echo get_post_meta($object->ID, "buy_book_hardback_link", true); ?>">
-			</div>
-			<div class="mp-book-meta-box">
-				<label for="book_isbn">ISBN</label>
 				<input type="text" name="buy_book_hardback_link" value="<?php echo get_post_meta($object->ID, "buy_book_hardback_link", true); ?>">
 			</div>
 		<?php
@@ -278,7 +297,33 @@ class Custom_Post_Type_MP_Book {
 		}   
 		update_post_meta($id, "book_pre_authors", $book_pre_authors_value);
 
-		// Save 'buy online' amazon link
+		// OTHER DETAILS
+		// publication date
+		$book_publicationdate_value = "";
+		if(isset($_POST["book_publicationdate"]))
+		{
+			$book_publicationdate_value = sanitize_text_field($_POST["book_publicationdate"]);
+		}   
+		update_post_meta($id, "book_publicationdate", $book_publicationdate_value);
+
+		// isbn
+		$book_isbn_value = "";
+		if(isset($_POST["book_isbn"]))
+		{
+			$book_isbn_value = sanitize_text_field($_POST["book_isbn"]);
+		}   
+		update_post_meta($id, "book_isbn", $book_isbn_value);
+
+		// doi
+		$book_doi_value = "";
+		if(isset($_POST["book_doi"]))
+		{
+			$book_doi_value = sanitize_text_field($_POST["book_doi"]);
+		}   
+		update_post_meta($id, "book_doi", $book_doi_value);
+
+
+		// Save 'buy online' link
 		$buy_book_link_value = "";
 		if(isset($_POST["buy_book_link"]))
 		{
@@ -408,5 +453,4 @@ class Custom_Post_Type_MP_Book {
 
 		return array_merge($mimes,$new_file_types);
 	}
-
 }
