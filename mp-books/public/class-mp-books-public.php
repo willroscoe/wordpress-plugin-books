@@ -183,13 +183,15 @@ class MP_Books_Public {
 				if (isset($this->book_file[$bookid]['pdf']['url'])) {
 					echo '<meta name="citation_pdf_url" content="' . $this->book_file[$bookid]['pdf']['url'] . '">', PHP_EOL;
 				}
-		
-				for($x = 0; $x < count($book_file_types); $x++) {
-					if (isset($this->book_file[$bookid][$this->book_file_types[$x]]['url'])) {
-						$thisurl = $this->book_file[$bookid][$this->book_file_types[$x]]['url'];
-						echo '<link rel="alternate" type="' . $this->book_file_type[$this->book_file_types[$x]]['mimetype'] . '" href="' . $thisurl . '">', PHP_EOL;
+				if (is_array($book_file_types)) {
+					for($x = 0; $x < count($book_file_types); $x++) {
+						if (isset($this->book_file[$bookid][$this->book_file_types[$x]]['url'])) {
+							$thisurl = $this->book_file[$bookid][$this->book_file_types[$x]]['url'];
+							echo '<link rel="alternate" type="' . $this->book_file_type[$this->book_file_types[$x]]['mimetype'] . '" href="' . $thisurl . '">', PHP_EOL;
+						}
 					}
 				}
+				
 
 				// FOR READ ONLINE PAGES ONLY
 				if (preg_match('"/books/[^/]+/([full]*read$|[full]*read/.*)"', $thepath)) // on book 'read online' page - either 'read' or 'fullread'
