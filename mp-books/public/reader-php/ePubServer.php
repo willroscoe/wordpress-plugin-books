@@ -8,6 +8,9 @@
  * 			To clear the cache for a particular epub book goto the following url /books/{bookname}/cleacache
  */
 
+ // Turn off all error reporting
+//error_reporting(0);
+
 require_once(dirname(__FILE__) . '/libs/BookGluttonEpub.php');
 require_once(dirname(__FILE__) . '/libs/HtmlDomParser.php');
 require_once(dirname(__FILE__) . '/libs/lessc.inc.php');
@@ -110,7 +113,8 @@ class ePubServer {
 					// go through each part of the URL and see if it matches the table of contents
 					// in the right position
 					if (basename($toc_entry['path'],'/')==basename($chapter_parts[$i])) {
-						$toc = $toc_entry['children'];
+						if (isset($toc_entry['children']))
+							$toc = $toc_entry['children'];
 
 						if ($i==count($chapter_parts)-1) {
 							// we've found a chapter to display! Render the appropriate page
@@ -292,10 +296,12 @@ class ePubServer {
 			if ($this->id($item)==$id) {
 				return $item;
 			}
-			if (count($item['navPoints'])>0) {
-				$answer = $this->getItem($id, $item['navPoints']);
-				if (!is_null($answer)) {
-					return $answer;
+			if (isset($item['navPoints'])){
+				if (count($item['navPoints'])>0) {
+					$answer = $this->getItem($id, $item['navPoints']);
+					if (!is_null($answer)) {
+						return $answer;
+					}
 				}
 			}
 		}
@@ -410,6 +416,10 @@ class ePubServer {
 
 							// now locate the thing we're looking for
 							$dom = $parser->str_get_html($body);
+							
+							if (!$dom)
+								break;
+
 							$elem = $dom->getElementById($partial_fragment);
 							$body = substr($body, $elem->tag_start);
 							break;
@@ -497,11 +507,16 @@ class ePubServer {
 
 		// crude highlighting of search terms. Does not work across HTML tags! So you can't highlight
 		// a quote if it (for example) has italic or bold text in it (pfffff)
-		echo str_ireplace(
-			$_GET["q"],
-			"<span class='selected'>" . filter_var($_GET["q"],FILTER_SANITIZE_SPECIAL_CHARS) . "</span>",
-			$html);
-
+		if (isset($_GET["q"])) {
+			echo str_ireplace(
+				$_GET["q"],
+				"<span class='selected'>" . filter_var($_GET["q"],FILTER_SANITIZE_SPECIAL_CHARS) . "</span>",
+				$html);
+		} else {
+			echo $html;
+		}
+		
+		
 		$flat_toc = $this->getFlatTableOfContents($toc);
 		for ($i = 0; $i<count($flat_toc); $i++) {
 			if ($flat_toc[$i]['id']==$chapter) {
@@ -553,11 +568,15 @@ class ePubServer {
 				$html .= "<strong>{$item['heading']}</strong>";
 			}
 			$html .= "<a href='{$item['link']}'>{$item['title']}</a>";
-			if (strlen($item['author'])>0) {
-				$html .= "<span class='author'>{$item['author']}</span>";
+			if (isset($item['author'])) {
+				if (strlen($item['author'])>0) {
+					$html .= "<span class='author'>{$item['author']}</span>";
+				}
 			}
-			if (count($item['children'])>0) {
-				$html .= renderTableOfContents($chapter, $item['children'], $level+1);
+			if (isset($item['children'])) {
+				if (count($item['children'])>0) {
+					$html .= renderTableOfContents($chapter, $item['children'], $level+1);
+				}
 			}
 			$html .= "</li>";
 		}
@@ -726,8 +745,10 @@ class ePubServer {
 		$list = array();
 		foreach ($toc as $item) {
 			$list[] = $item;
-			if (count($item['children'])>0) {
-				$list = array_merge($list, $this->getFlatTableOfContents($item['children']));
+			if (isset($item['children'])) {
+				if (count($item['children'])>0) {
+					$list = array_merge($list, $this->getFlatTableOfContents($item['children']));
+				}
 			}
 		}
 		return $list;
