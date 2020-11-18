@@ -30,6 +30,10 @@ The epub processing/rendering part of this plugin is significantly based on an e
 * PHP Simple HTML DOM Parser - licensed under MIT license - http://sourceforge.net/projects/simplehtmldom/
 * BookGluttonEpub - licensed under MIT license - https://github.com/Vaporbook/BookGluttonEpub
 
+## Required Apache 2 components
+sudo apt-get install php7.4-zip
+sudo apt-get install php7.4-xml
+sudo apt-get install php7.4-mbstring
 
 ## Changelog
 
