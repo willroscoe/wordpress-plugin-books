@@ -283,7 +283,7 @@ class MP_Books_Public {
 			echo "<ul class='link-block'>";
 		}
 		if (!empty($epub_file_url)) {
-			echo '<li><span class="label">Read</span> <span class="links"><a href="' . esc_url( get_permalink() ) . '/read" class="colorbox donate" data-colorbox-href="#donate-popup" data-colorbox-inline="true">online</a></span></li>';
+			echo '<li><span class="label">Read</span> <span class="links"><a href="' . esc_url( get_permalink() ) . '/read">online</a></span></li>';
 		}
 
 		if (!empty($downloadlinks)) {

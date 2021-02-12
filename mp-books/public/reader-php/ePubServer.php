@@ -135,7 +135,7 @@ class ePubServer {
 				{
 					if (isset($toc[0]['link']))
 					{
-						header("Location: $link" . $toc[0]['link']);
+						header("Location: " . $toc[0]['link']);
 						die;
 					}
 				}
@@ -403,11 +403,16 @@ class ePubServer {
 						if (strpos($np['point']['src'], $partial_path . "#" . $partial_fragment)!==false) {
 							// we found our nav point
 							$from = $np['start'];
+							// Check if this nav point is in the same partial path (xhtml file) as the next nav point
+							// This fixes the issue in epub boook where each chapter is in a differen xhtml file.
+							$nextNavPoint = $nav_points[$i+1];
+							$nextNavPointSrc = parse_url($nextNavPoint['point']['src']);
+							$nextNavPointPartialPath = $nextNavPointSrc['path'];
 
 							// The 'from' position is most certainly SMALLER than the actual tag position.
 							// This is a limitation of simple_html_dom, unfortunately. We compensate by
 							// using the same simple_html_dom library to find the actual content.
-							if ($i < count($nav_points)-1) {
+							if ($i < count($nav_points)-1 && $partial_path == $nextNavPointPartialPath) {
 								$to = $nav_points[$i+1]['start'];
 								$body = substr($html, $from, $to - $from);
 							} else {
