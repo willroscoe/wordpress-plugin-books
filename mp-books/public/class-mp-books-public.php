@@ -220,8 +220,11 @@ class MP_Books_Public {
 			if (isset( $id )){
 				// Getting the post type of the current post
 				$current_post_type = get_post_type_object(get_post_type($post->ID));
-				$current_post_type_slug = $current_post_type->rewrite['slug'];
-					
+				$current_post_type_slug = $current_post_type->name;
+				if ($current_post_type->name == "mp_book") {
+					$current_post_type_slug = $current_post_type->rewrite['slug'];
+				}
+
 				// Getting the URL of the menu item
 				$menu_slug = strtolower(trim($menu_item->url));
 				
@@ -510,11 +513,13 @@ class MP_Books_Public {
 		$downloadlinks = "";
 
 		for($x = 0; $x < count($this->book_file_types); $x++) {
-			if ($this->book_file[$bookid][$this->book_file_types[$x]]['url'] != "") {
-				if ($downloadlinks != "") {
-					$downloadlinks .= ", ";
+			if (array_key_exists($this->book_file_types[$x], $this->book_file[$bookid])) {
+				if ($this->book_file[$bookid][$this->book_file_types[$x]]['url'] != "") {
+					if ($downloadlinks != "") {
+						$downloadlinks .= ", ";
+					}
+					$downloadlinks .= sprintf("<a href='%s' target='_blank'>" . $this->book_file_type[$this->book_file_types[$x]]['title'] . "</a>", $this->book_file[$bookid][$this->book_file_types[$x]]['url']);
 				}
-				$downloadlinks .= sprintf("<a href='%s' target='_blank'>" . $this->book_file_type[$this->book_file_types[$x]]['title'] . "</a>", $this->book_file[$bookid][$this->book_file_types[$x]]['url']);
 			}
 		}
 
